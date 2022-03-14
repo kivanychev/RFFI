@@ -1,0 +1,14 @@
+{
+    "idf.adapterTargetName": "esp32",
+    "idf.portWin": "COM10",
+    "files.associations": {
+        "*.tcc": "c",
+        "cstdlib": "c",
+        "*.ipp": "c",
+        "queue.h": "c",
+        "task.h": "c",
+        "gpio.h": "c",
+        "freertos.h": "c",
+        "freertosconfig.h": "c"
+    }
+}
