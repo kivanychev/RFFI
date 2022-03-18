@@ -15,6 +15,8 @@
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 
+#include <esp_log.h>
+
 /**
  * Brief:
  * This test code shows how to configure gpio and how to use gpio interrupt.
@@ -65,7 +67,7 @@ static void gpio_task_example(void* arg)
     uint32_t io_num;
     for(;;) {
         if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
-            printf("GPIO[%d] intr, val: %d\n", io_num, gpio_get_level(io_num));
+            ESP_LOGI("ADC", "GPIO[%d] intr, val: %d\n", io_num, gpio_get_level(io_num));
         }
     }
 }
@@ -135,7 +137,7 @@ void gpio_test(void)
 /*
     int cnt = 0;
     while(1) {
-        printf("cnt: %d\n", cnt++);
+        ESP_LOGI("ADC", "cnt: %d\n", cnt++);
         vTaskDelay(1000 / portTICK_RATE_MS);
         gpio_set_level(GPIO_OUTPUT_IO_0, cnt % 2);
     }

@@ -17,11 +17,18 @@
 
 #include <esp_log.h>
 
+// ======================================================================
+// CONSTANT DEFINITIONS
+// ======================================================================
 
 #define TIMER_DIVIDER         (16)  //  Hardware timer clock divider
 #define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER)  // convert counter value to seconds
 #define SINE_SPEED            10
 #define NVALUES               32
+
+// ======================================================================
+//  TYPE DEFINITIONS
+// ======================================================================
 
 typedef struct {
     int timer_group;
@@ -39,18 +46,15 @@ typedef struct {
     uint64_t timer_counter_value;
 } example_timer_event_t;
 
+// ======================================================================
+// LOCAL VARIABLES
+// ======================================================================
+
 static xQueueHandle s_timer_queue;
 
-/*
- * A simple helper function to print the raw timer counter value
- * and the counter value converted to seconds
- */
-static void inline print_timer_counter(uint64_t counter_value)
-{
-        ESP_LOGI("Timer", "Counter: 0x%08x%08x\r\n", (uint32_t) (counter_value >> 32),
-           (uint32_t) (counter_value));
-    ESP_LOGI("Timer", "Time   : %.8f s\r\n", (double) counter_value / TIMER_SCALE);
-}
+// ======================================================================
+// FUNCTION DEFINITIONS
+// ======================================================================
 
 /**
  * @brief ISR for Timer events
@@ -75,17 +79,12 @@ static bool IRAM_ATTR timer_group_isr_callback(void *args)
         .timer_counter_value = timer_counter_value
     };
 
-    if (!info->auto_reload) {
-        timer_counter_value += info->alarm_interval * TIMER_SCALE;
-        timer_group_set_alarm_value_in_isr(info->timer_group, info->timer_idx, timer_counter_value);
-    }
-
-
     /* Now just send the event data back to the main program task */
     xQueueSendFromISR(s_timer_queue, &evt, &high_task_awoken);
 
     return high_task_awoken == pdTRUE; // return whether we need to yield at the end of ISR
 }
+
 
 
 /**
@@ -140,7 +139,7 @@ static void sine_timer_task(void *arg)
     int pos;
     int duty_a = 0;
     int duty_b = NVALUES / 2;
-    float sine_scale = 30.0;
+    float sine_scale = 40.0;
 
     /* Prepare sine values array */
     for(pos = 0; pos < NVALUES; ++pos)
@@ -151,7 +150,7 @@ static void sine_timer_task(void *arg)
     /* Create a queue for receiving data from ISR */
     s_timer_queue = xQueueCreate(10, sizeof(example_timer_event_t));
 
-    sine_timer_init(TIMER_GROUP_0, TIMER_0, true, 20); // 20 msec for sine period
+    sine_timer_init(TIMER_GROUP_0, TIMER_0, true, 20);      // 20 millisec for sine period
 
     while (1) 
     {
@@ -164,12 +163,12 @@ static void sine_timer_task(void *arg)
 
         if(duty_a >= NVALUES)
         {
-            duty_a = 0.0;
+            duty_a = 0;
         }
 
         if(duty_b >= NVALUES)
         {
-            duty_b = 0.0;
+            duty_b = 0;
         }
 
         set_duty_a( 50.0 + sine_scale * sine_value[duty_a]);
@@ -184,5 +183,4 @@ static void sine_timer_task(void *arg)
 void app_sine_timer(void)
 {
     xTaskCreatePinnedToCore(sine_timer_task, "sine_timer_task", 2048, NULL, 2, NULL, 1);
-
 }

@@ -25,6 +25,7 @@
 #include "gpio_control.h"
 #include "pwm_control.h"
 #include "sine_timer.h"
+#include "adc_task.h"
 
 #include "driver/gpio.h"
 
@@ -39,7 +40,7 @@ int outputPinState = 1;
 
 static int println(char *buf, char * str)
 {
-    int len = sprintf(buf, str);
+    int len = sprintf("ADC", buf, str);
 
     buf += len;
     sprintf(buf, "\r\n");
@@ -384,6 +385,6 @@ void app_main(void)
     pwm_init();
 
     app_sine_timer();
-
+    start_adc_task();
 
 }

@@ -66,7 +66,7 @@ void pwm_init(void)
     //2. initial mcpwm configuration
     ESP_LOGI("PWM", "Configuring Initial Parameters of mcpwm...\n");
     mcpwm_config_t pwm_config;
-    pwm_config.frequency = 20000;    //frequency = 20000Hz,
+    pwm_config.frequency = 40000;    //frequency = 20000Hz for up and down counter
     pwm_config.cmpr_a = 0;    //duty cycle of PWMxA = 0
     pwm_config.cmpr_b = 0;    //duty cycle of PWMxb = 0
     pwm_config.counter_mode = MCPWM_UP_DOWN_COUNTER;
