@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"terminal.integrated.defaultProfile.windows": "cmd.exe",
+		"terminal.integrated.defaultProfile.windows": [
+			"/k",
+			"f:/esp32/idf/export.bat"
+		]
+
+	}
+}
