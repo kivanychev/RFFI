@@ -9,6 +9,11 @@
         "task.h": "c",
         "gpio.h": "c",
         "freertos.h": "c",
-        "freertosconfig.h": "c"
+        "freertosconfig.h": "c",
+        "esp_adc_cal.h": "c",
+        "adc.h": "c",
+        "adc_tack.h": "c",
+        "esp_netif.h": "c",
+        "adc_task.h": "c"
     }
 }

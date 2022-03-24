@@ -382,9 +382,9 @@ void app_main(void)
 
     gpio_test();
 
-    pwm_init();
+    //pwm_init();
 
-    app_sine_timer();
-    start_adc_task();
+    //app_sine_timer();
+    //start_adc_task();
 
 }
