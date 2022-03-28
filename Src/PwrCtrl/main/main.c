@@ -8,6 +8,7 @@
 */
 
 #include <esp_wifi.h>
+#include <esp_http_server.h>
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_system.h>
@@ -18,16 +19,13 @@
 #include "nvs_flash.h"
 #include "esp_netif.h"
 #include "esp_eth.h"
-#include "protocol_examples_common.h"
+#include "driver/gpio.h"
 
-#include <esp_http_server.h>
 #include "wifi_ap.h"
 #include "gpio_control.h"
 #include "pwm_control.h"
 #include "sine_timer.h"
 #include "adc_task.h"
-
-#include "driver/gpio.h"
 
 
 /* A simple example that demonstrates how to create GET and POST
@@ -40,7 +38,7 @@ int outputPinState = 1;
 
 static int println(char *buf, char * str)
 {
-    int len = sprintf("ADC", buf, str);
+    int len = sprintf(buf, str);
 
     buf += len;
     sprintf(buf, "\r\n");
@@ -297,8 +295,9 @@ static httpd_handle_t start_webserver(void)
 {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+
     config.lru_purge_enable = true;
-    //config.core_id = 2;
+    config.core_id = 0;     // Start HTTP server on Core 0
 
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
@@ -382,9 +381,9 @@ void app_main(void)
 
     gpio_test();
 
-    //pwm_init();
+    pwm_init();
 
-    //app_sine_timer();
-    //start_adc_task();
+    app_sine_timer();
+    start_adc_task();
 
 }

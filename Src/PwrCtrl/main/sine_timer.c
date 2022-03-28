@@ -182,5 +182,5 @@ static void sine_timer_task(void *arg)
  */
 void app_sine_timer(void)
 {
-    xTaskCreatePinnedToCore(sine_timer_task, "sine_timer_task", 2048, NULL, 2, NULL, 1);
+    xTaskCreatePinnedToCore(sine_timer_task, "sine_timer_task", 1024, NULL, 2, NULL, 1);
 }

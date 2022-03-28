@@ -10,7 +10,7 @@ http_server/simple
   или планшета
 
 
-http_server/SoftAP
+http_server/SimpleAP
   По ставнению с предыдущми примером, взял готовый пример настройки Soft AP
   Он работает сразу
 
