@@ -26,6 +26,8 @@
 #include "pwm_control.h"
 #include "sine_timer.h"
 #include "adc_task.h"
+#include "uart_task.h"
+#include "enc28j60_task.h"
 
 
 /* A simple example that demonstrates how to create GET and POST
@@ -385,5 +387,7 @@ void app_main(void)
 
     app_sine_timer();
     start_adc_task();
+    uart_start_task();
+    enc28j60_start_task();
 
 }

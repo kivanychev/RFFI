@@ -1,0 +1,8 @@
+{
+    "idf.adapterTargetName": "esp32",
+    "idf.portWin": "COM10",
+    "files.associations": {
+        "*.tcc": "c",
+        "cstdlib": "c"
+    }
+}

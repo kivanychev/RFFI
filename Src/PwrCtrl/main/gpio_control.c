@@ -35,7 +35,9 @@
  */
 
 #define GPIO_OUTPUT_IO_0    13
-#define GPIO_OUTPUT_PIN_SEL  (1ULL<<GPIO_OUTPUT_IO_0)
+// UART level converter enable
+#define GPIO_OUTPUT_UART_EN    21
+#define GPIO_OUTPUT_PIN_SEL  ((1ULL<<GPIO_OUTPUT_IO_0) | (1ULL<<GPIO_OUTPUT_UART_EN))
 
 #define GPIO_INPUT_IO_0     0
 #define GPIO_INPUT_IO_1     15
@@ -67,7 +69,7 @@ static void gpio_task_example(void* arg)
     uint32_t io_num;
     for(;;) {
         if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
-            ESP_LOGI("ADC", "GPIO[%d] intr, val: %d\n", io_num, gpio_get_level(io_num));
+            ESP_LOGI("GPIO", "GPIO[%d] intr, val: %d\n", io_num, gpio_get_level(io_num));
         }
     }
 }
@@ -80,6 +82,15 @@ static void gpio_task_example(void* arg)
 void LEDstate(uint32_t state)
 {
     gpio_set_level(GPIO_OUTPUT_IO_0, state);
+}
+
+/**
+ * @brief Enables UART level converter coming from ATmega328P
+ * 
+ */
+void UARTenable(void)
+{
+    gpio_set_level(GPIO_OUTPUT_UART_EN, 1);
 }
 
 
