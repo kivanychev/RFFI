@@ -72,6 +72,7 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     
     resp += println(resp, "<!DOCTYPE html><html>");
     resp += println(resp, "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+    resp += println(resp, "<meta charset=\"utf-8\">");    
     resp += println(resp, "<link rel=\"icon\" href=\"data:,\">");
 
     // CSS to style the on/off buttons 
@@ -79,29 +80,29 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     resp += println(resp, "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
     resp += println(resp, ".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
     resp += println(resp, "text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-    resp += println(resp, ".button2 {background-color: #555555;}</style></head>");
+    resp += println(resp, ".button2 {background-color: #e34234;}</style></head>");
             
     // Web Page Heading
-    resp += println(resp, "<body><h1>ESP32 Web Server</h1>");
+    resp += println(resp, "<body><h1>Состояние системы электропитания</h1>");
             
     // Display current state, and ON/OFF buttons for GPIO 26  
-    resp += print(resp, "<p>GPIO 26 - State ");
+    resp += print(resp, "<p>Состояние инвертора: ");
     if (outputPinState == 0)
-        resp += print(resp, "off");
+        resp += print(resp, "Остановлен");
     else
-        resp += print(resp, "on");
+        resp += print(resp, "Включен");
 
     resp += println(resp, "</p>");
 
     // If the outputPinState is off, it displays the ON button       
     if (outputPinState==0) 
     {
-        resp += println(resp, "<p><a href=\"/hello\"><button class=\"button\">ON</button></a></p>");
+        resp += println(resp, "<p><a href=\"/hello\"><button class=\"button\">START</button></a></p>");
         outputPinState = 1;
     } 
     else 
     {
-        resp += println(resp, "<p><a href=\"/hello\"><button class=\"button button2\">OFF</button></a></p>");
+        resp += println(resp, "<p><a href=\"/hello\"><button class=\"button button2\">STOP</button></a></p>");
         outputPinState = 0;
     } 
                

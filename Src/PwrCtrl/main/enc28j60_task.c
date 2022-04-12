@@ -153,6 +153,5 @@ static void enc28j60_task(void *arg)
  */
 void enc28j60_start_task(void)
 {
-    //xTaskCreate(enc28j60_task, "enc28j60_task", 2048, NULL, 4, NULL);
     xTaskCreatePinnedToCore(enc28j60_task, "enc28j60_task", 4096, NULL, 4, NULL, 0);
 }
