@@ -21,7 +21,7 @@ extern "C" {
 //                FUNCTION PROTOTYPES
 // ================================================
 
-void enc28j60_start_task(void);
+void enc28j60_init(void);
 
 
 #ifdef __cplusplus

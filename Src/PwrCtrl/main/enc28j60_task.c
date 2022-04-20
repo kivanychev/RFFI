@@ -60,13 +60,18 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
 }
 
 
-static void enc28j60_task(void *arg)
+/**
+ * @brief Initializes ENC28J60 Ethernet controller task
+ * 
+ */
+void enc28j60_init(void)
 {
 // ESP_ERROR_CHECK(gpio_install_isr_service(0));
     
     // Initialize TCP/IP network interface (should be called only once in application)
     ESP_ERROR_CHECK(esp_netif_init());
-    // Create default event loop that running in background
+
+// Create default event loop that running in background
 //ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     esp_netif_config_t netif_cfg = ESP_NETIF_DEFAULT_ETH();
@@ -138,20 +143,5 @@ static void enc28j60_task(void *arg)
     enc28j60_set_phy_duplex(phy, ETH_DUPLEX_FULL);
 #endif
 
-    while(1)
-    {   
-        vTaskDelay(100);
-    }
-
 }
 
-
-
-/**
- * @brief Starts ENC28J60 Ethernet controller task
- * 
- */
-void enc28j60_start_task(void)
-{
-    xTaskCreatePinnedToCore(enc28j60_task, "enc28j60_task", 4096, NULL, 4, NULL, 0);
-}
