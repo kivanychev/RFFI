@@ -375,20 +375,17 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &connect_handler, &server));
     ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ETHERNET_EVENT_DISCONNECTED, &disconnect_handler, &server));
 #endif // CONFIG_EXAMPLE_CONNECT_ETHERNET
-    
 
-    
     /* Start the server for the first time */
     server = start_webserver();
-
 
     gpio_test();
 
     pwm_init();
 
     app_sine_timer();
-    start_adc_task();
+    ADC_start_task();
     uart_start_task();
-    enc28j60_start_task();
+    enc28j60_init();
 
 }

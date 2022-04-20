@@ -1,134 +1,123 @@
-/*
- * SPDX-FileCopyrightText: 2021 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: Apache-2.0
- */
 
-#include <string.h>
 #include <stdio.h>
-#include "sdkconfig.h"
-#include "esp_log.h"
+#include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/semphr.h"
+#include "driver/gpio.h"
 #include "driver/adc.h"
+#include "esp_adc_cal.h"
 
-#define TIMES              48
-#define GET_UNIT(x)        ((x>>3) & 0x1)
+#include <esp_log.h>
 
-#define ADC_RESULT_BYTE     2
-#define ADC_CONV_LIMIT_EN   1                       //For ESP32, this should always be set to 1
-#define ADC_CONV_MODE       ADC_CONV_SINGLE_UNIT_1  //ESP32 only supports ADC1 DMA mode
-#define ADC_OUTPUT_TYPE     ADC_DIGI_OUTPUT_FORMAT_TYPE1
+#include "adc_task.h"
 
 
-static uint16_t adc1_chan_mask = BIT(7);
-static uint16_t adc2_chan_mask = 0;
-static adc_channel_t channel[6] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_6, ADC_CHANNEL_7};
-static const char *TAG = "ADC DMA";
+#define DEFAULT_VREF    1100        //Use adc2_vref_to_gpio() to obtain a better estimate
+#define NO_OF_SAMPLES   2           //Multisampling
 
 
-/**
- * @brief ADC initialization: Continous reading with DMA
- * 
- * @param adc1_chan_mask - 
- * @param adc2_chan_mask - 
- * @param channel - IDs array of Channels to read
- * @param channel_num - Number of channels to read
- */
-static void continuous_adc_init(uint16_t adc1_chan_mask, uint16_t adc2_chan_mask, adc_channel_t *channel, uint8_t channel_num)
+
+static esp_adc_cal_characteristics_t *adc_chars;
+
+static const adc_channel_t channels[6] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_6, ADC_CHANNEL_7 };
+static char* param_names[6] = {"Uab", "Uinv", "Iab", "Ite", "Useti", "Ute"};
+static uint16_t param_values[6];
+
+static const adc_bits_width_t width = ADC_WIDTH_BIT_12;
+
+static const adc_atten_t atten = ADC_ATTEN_DB_11;
+static const adc_unit_t unit = ADC_UNIT_1;
+
+
+static void check_efuse(void)
 {
-    adc_digi_init_config_t adc_dma_config = {
-        .max_store_buf_size = TIMES,
-        .conv_num_each_intr = TIMES,
-        .adc1_chan_mask = adc1_chan_mask,
-        .adc2_chan_mask = adc2_chan_mask,
-    };
-    ESP_ERROR_CHECK(adc_digi_initialize(&adc_dma_config));
 
-    adc_digi_configuration_t dig_cfg = {
-        .conv_limit_en = ADC_CONV_LIMIT_EN,
-        .conv_limit_num = 250,
-        .sample_freq_hz = 15 * 1000,
-        .conv_mode = ADC_CONV_MODE,
-        .format = ADC_OUTPUT_TYPE,
-    };
-
-    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
-    dig_cfg.pattern_num = channel_num;
-
-    for (int i = 0; i < channel_num; i++)
-    {
-        uint8_t unit = GET_UNIT(channel[i]);
-        uint8_t ch = channel[i] & 0x7;
-        adc_pattern[i].atten = ADC_ATTEN_DB_11;
-        adc_pattern[i].channel = ch;
-        adc_pattern[i].unit = unit;
-        adc_pattern[i].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
-
-        ESP_LOGI(TAG, "adc_pattern[%d].atten is :%x", i, adc_pattern[i].atten);
-        ESP_LOGI(TAG, "adc_pattern[%d].channel is :%x", i, adc_pattern[i].channel);
-        ESP_LOGI(TAG, "adc_pattern[%d].unit is :%x", i, adc_pattern[i].unit);
+    //Check if TP is burned into eFuse
+    if (esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_TP) == ESP_OK) {
+        ESP_LOGI("ADC", "eFuse Two Point: Supported\n");
+    } else {
+        ESP_LOGI("ADC", "eFuse Two Point: NOT supported\n");
     }
 
-    dig_cfg.adc_pattern = adc_pattern;
-    ESP_ERROR_CHECK(adc_digi_controller_configure(&dig_cfg));
+    //Check Vref is burned into eFuse
+    if (esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF) == ESP_OK) {
+        ESP_LOGI("ADC", "eFuse Vref: Supported\n");
+    } else {
+        ESP_LOGI("ADC", "eFuse Vref: NOT supported\n");
+    }
+
 }
 
 
-/**
- * @brief ADC task: Collecting data with DMA
- * 
- */
-static void adc_task(void *arg)
+static void print_char_val_type(esp_adc_cal_value_t val_type)
 {
-    esp_err_t ret;
-    uint32_t ret_num = 0;
-    uint8_t result[TIMES] = {0};
-    memset(result, 0xcc, TIMES);
+    if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
+        ESP_LOGI("ADC", "Characterized using Two Point Value\n");
+    } else if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
+        ESP_LOGI("ADC", "Characterized using eFuse Vref\n");
+    } else {
+        ESP_LOGI("ADC", "Characterized using Default Vref\n");
+    }
+}
 
-    continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
-    adc_digi_start();
 
-    while(1) {
-        ret = adc_digi_read_bytes(result, TIMES, &ret_num, ADC_MAX_DELAY);
-        ret = adc_digi_read_bytes(result, TIMES, &ret_num, ADC_MAX_DELAY);
-        if (ret == ESP_OK || ret == ESP_ERR_INVALID_STATE) {
-            if (ret == ESP_ERR_INVALID_STATE) {
+void adc_task(void *args)
+{
+    //Check if Two Point or Vref are burned into eFuse
+    check_efuse();
+
+    //Configure ADC channels
+    for(int paramId = 0; paramId < ADC_LAST_PARAM; ++paramId)
+    {
+        adc1_config_width(width);
+        adc1_config_channel_atten(channels[paramId], atten);
+    }
+
+    //Characterize ADC
+    adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(unit, atten, width, DEFAULT_VREF, adc_chars);
+    print_char_val_type(val_type);
+
+    //Continuously sample ADC1
+    while (1) 
+    {
+        for(int contunous_read_cnt = 0; contunous_read_cnt < 500; contunous_read_cnt++)
+        {
+            for(int paramId = 0; paramId < ADC_LAST_PARAM; ++paramId)
+            {
+                uint32_t adc_reading = 0;
+
+                //Multisampling
+                for (int i = 0; i < NO_OF_SAMPLES; i++) 
+                {
+                    adc_reading += adc1_get_raw((adc1_channel_t)channels[paramId]);
+                }
+
+                param_values[paramId] = adc_reading / NO_OF_SAMPLES;
             }
 
-            ESP_LOGI("TASK:", "ret is %x, ret_num is %d", ret, ret_num);
-            for (int i = 0; i < ret_num; i += ADC_RESULT_BYTE) {
-                adc_digi_output_data_t *p = (void*)&result[i];
-
-                ESP_LOGI(TAG, "Unit: %d, Channel: %d, Value: %d", 1, p->type1.channel, p->type1.data);
-
-            }
-            
-            //See `note 1`
-            vTaskDelay(100);
-        } else if (ret == ESP_ERR_TIMEOUT) {
-            /**
-             * ``ESP_ERR_TIMEOUT``: If ADC conversion is not finished until Timeout, you'll get this return error.
-             * Here we set Timeout ``portMAX_DELAY``, so you'll never reach this branch.
-             */
-            ESP_LOGW(TAG, "No data, increase timeout or reduce conv_num_each_intr");
-            vTaskDelay(1000);
         }
 
+        // Print all parameters
+        for(int paramId = 0; paramId < ADC_LAST_PARAM; ++paramId)
+        {
+            //Convert adc_reading to voltage in mV
+            uint32_t voltage = esp_adc_cal_raw_to_voltage(param_values[paramId], adc_chars);
+            ESP_LOGI("ADC", "%s = Raw: %d\tVoltage: %dmV", param_names[paramId], param_values[paramId], voltage);
+            
+
+        }
+
+        ESP_LOGI("ADC", "---------------------------------");
+
+        vTaskDelay(1);
     }
-
-    adc_digi_stop();
-    ret = adc_digi_deinitialize();
-    assert(ret == ESP_OK);
 }
 
 
-/**
- * @brief Starting ADC task
- * 
- */
-void start_adc_task(void)
+
+void ADC_start_task(void)
 {
-    xTaskCreatePinnedToCore(adc_task, "adc_task", 4096, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(adc_task, "adc_task", 2048, NULL, 2, NULL, 0);
 }
+

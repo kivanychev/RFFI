@@ -5,18 +5,47 @@
 extern "C" {
 #endif
 
+#include "driver/adc.h"
 
 
-// ADC_CHANNEL_0 - Uab
-// ADC_CHANNEL_3 - Uinv
-// ADC_CHANNEL_4 - Iab
-// ADC_CHANNEL_5 - Ite
-// ADC_CHANNEL_6 - Useti
-// ADC_CHANNEL_7 - Ute
+// ======================================================================
+// CONSTANT DEFINITIONS
+// ======================================================================
 
 
 
-void start_adc_task(void);
+// ======================================================================
+//  TYPE DEFINITIONS
+// ======================================================================
+
+// Index names for param_names[] and params[]
+typedef enum {
+    ADC_CH_U_AB = 0,
+    ADC_CH_U_INV,   
+    ADC_CH_I_AB,
+    ADC_CH_I_TE,
+    ADC_CH_U_SETI,
+    ADC_CH_U_TE,
+
+    ADC_LAST_PARAM
+
+} ParamChannels_t;
+
+typedef struct {
+    uint32_t raw;           // Raw value. Accumulated on data collection
+    uint32_t voltage;       // Resulting voltage after calculating middle value
+    uint32_t cnt;           // Counter of the values
+
+} ParamValue_t;
+
+
+// ======================================================================
+// FUNCTION PROTOTYPES
+// ======================================================================
+
+void ADC_start_task(void);
+void ADC_get_values(uint16_t *requested_adc_data);
+
 
 
 #ifdef __cplusplus
