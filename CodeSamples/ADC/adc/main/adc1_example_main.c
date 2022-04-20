@@ -17,11 +17,15 @@
 #endif
 
 #define DEFAULT_VREF    1100        //Use adc2_vref_to_gpio() to obtain a better estimate
-#define NO_OF_SAMPLES   64          //Multisampling
+#define NO_OF_SAMPLES   2          //Multisampling
 
 #if CONFIG_IDF_TARGET_ESP32
 static esp_adc_cal_characteristics_t *adc_chars;
 static const adc_channel_t channel = ADC_CHANNEL_0;     //GPIO34 if ADC1, GPIO14 if ADC2
+static const adc_channel_t channel2 = ADC_CHANNEL_3;     //GPIO34 if ADC1, GPIO14 if ADC2
+static const adc_channel_t channel3 = ADC_CHANNEL_5;     //GPIO34 if ADC1, GPIO14 if ADC2
+static const adc_channel_t channel4 = ADC_CHANNEL_6;     //GPIO34 if ADC1, GPIO14 if ADC2
+static const adc_channel_t channel5 = ADC_CHANNEL_7;     //GPIO34 if ADC1, GPIO14 if ADC2
 #elif CONFIG_IDF_TARGET_ESP32S2BETA
 static const adc_channel_t channel = ADC_CHANNEL_0;     // GPIO7 if ADC1, GPIO17 if ADC2
 #endif 
