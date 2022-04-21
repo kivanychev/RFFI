@@ -20,11 +20,11 @@ extern "C" {
 
 // Index names for param_names[] and params[]
 typedef enum {
-    ADC_CH_U_AB = 0,
+    ADC_CH_U_SETI = 0,
     ADC_CH_U_INV,   
     ADC_CH_I_AB,
     ADC_CH_I_TE,
-    ADC_CH_U_SETI,
+    ADC_CH_U_AB,
     ADC_CH_U_TE,
 
     ADC_LAST_PARAM
@@ -34,17 +34,34 @@ typedef enum {
 typedef struct {
     uint32_t raw;           // Raw value. Accumulated on data collection
     uint32_t voltage;       // Resulting voltage after calculating middle value
-    uint32_t cnt;           // Counter of the values
 
 } ParamValue_t;
 
+// Frame of measured parameters
+typedef struct {
+    uint32_t Useti;     // mV
+    uint32_t Uinv;      // mV
+    uint32_t Iab;       // mA
+    uint32_t Ite;       // mA
+    uint32_t Uab;       // mV
+    uint32_t Ute;       // mV
+
+} ParamDataFrame_t;
+
+
+typedef enum {
+    ADC_ST_OK,
+    ADC_ST_GET_DATA_BUSY,
+    ADC_ST_ERROR
+
+} ADC_status_t;
 
 // ======================================================================
 // FUNCTION PROTOTYPES
 // ======================================================================
 
 void ADC_start_task(void);
-void ADC_get_values(uint16_t *requested_adc_data);
+ADC_status_t ADC_get_values(ParamDataFrame_t *requested_adc_data);
 
 
 
