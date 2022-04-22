@@ -20,7 +20,7 @@
 #define DEFAULT_VREF            1100        //Use adc2_vref_to_gpio() to obtain a better estimate
 #define NO_OF_SAMPLES           4           //Multisampling for other signals
 #define NO_OF_DATA_FRAMES       20
-#define NO_OF_SAMPLES_ALT       2           //Multisampling for alternating signals
+#define NO_OF_SAMPLES_ALT       4           //Multisampling for alternating signals
 #define NO_OF_DATA_FRAMES_ALT   48           //Number of data frames to read at 1 measure procedure for alternating signals
 
 #define TRUE                    1
@@ -45,11 +45,11 @@ static uint32_t k_Useti = 1;
 static uint32_t k_Uinv = 1;
 static uint32_t k_Iab = 1;
 static uint32_t k_Ite = 1;
-static uint32_t k_Uab = 1;
+static uint32_t k_Uab = 10;
 static uint32_t k_Ute = 1;
 
 // Used as a request flag for getting measured data by ADC_get_values()
-static int get_data_request_flag = FALSE;
+static volatile int get_data_request_flag = FALSE;
 
 static esp_adc_cal_characteristics_t *adc_chars;
 
@@ -174,12 +174,10 @@ void adc_task(void *args)
                 }
             }
 
-            // Get voltage value for Maximum value
+            // Get voltage value for Maximum value  
+            // Um / sqrt(2) ???? - I can use only one coefficiend for assigning measured value to the physical parameter value
             params[paramId].voltage = (esp_adc_cal_raw_to_voltage(params[paramId].raw, adc_chars) * 1000) / 1414;
         }
-
-        // 1.2 Um / sqrt(2)
-
 
         // Part 2: Measure other signals
 
@@ -210,18 +208,29 @@ void adc_task(void *args)
 
             // Reset flag
             DataFrameRequestComplete();
+            ESP_LOGD(TAG, "Finished data request");
         }
 
         // Print all parameters
         for(paramId = 0; paramId < ADC_LAST_PARAM; ++paramId)
         {
             //Convert adc_reading to voltage in mV
-            ESP_LOGI(TAG, "%s = Raw: %d\tVoltage: %dmV", param_names[paramId], params[paramId].raw, params[paramId].voltage);
+            ESP_LOGD(TAG, "%s = Raw: %d\tVoltage: %dmV", param_names[paramId], params[paramId].raw, params[paramId].voltage);
         }
 
-        ESP_LOGI(TAG, "---------------------------------");
+        // Print sine raw values
+        for(paramId = 0; paramId < 2; ++paramId)
+        {
+            ESP_LOGD(TAG, "%s raw vaues:", param_names[paramId]);
+            for(int sine_raw_ind = 0; sine_raw_ind < NO_OF_DATA_FRAMES_ALT; sine_raw_ind++)
+            {
+                ESP_LOGD(TAG, "%d", sine_params_raw[paramId][sine_raw_ind]);
+            }
+        }
 
-        vTaskDelay(80);
+        ESP_LOGD(TAG, "---------------------------------");
+
+        vTaskDelay(100);
     }
 }
 

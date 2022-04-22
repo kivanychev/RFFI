@@ -139,7 +139,7 @@ static void sine_timer_task(void *arg)
     int pos;
     int duty_a = 0;
     int duty_b = NVALUES / 2;
-    float sine_scale = 40.0;
+    float sine_scale = 85.0;
 
     /* Prepare sine values array */
     for(pos = 0; pos < NVALUES; ++pos)

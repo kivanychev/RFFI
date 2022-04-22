@@ -29,14 +29,22 @@
 #include "uart_task.h"
 #include "enc28j60_task.h"
 
+#define TRUE    1
+#define FALSE   0
 
-/* A simple example that demonstrates how to create GET and POST
- * handlers for the web server.
- */
+// ===================================================================
+// LOCAL VARIABLES
+// ===================================================================
 
 static const char *TAG = "example";
 int outputPinState = 1;
+volatile int http_response_active = FALSE;
 
+ParamDataFrame_t system_params;
+
+// ===================================================================
+// LOCAL FUNCTIONS
+// ===================================================================
 
 static int println(char *buf, char * str)
 {
@@ -59,6 +67,7 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     char*  buf;
     size_t buf_len;
 
+    http_response_active = TRUE;
     // --------------------- Send html page as a response -----------------------
 
     LEDstate(outputPinState);
@@ -94,6 +103,8 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
 
     resp += println(resp, "</p>");
 
+    resp += sprintf(resp, "</p>Uab = %d,%d В</p>\r\n", system_params.Uab/1000, system_params.Uab % 1000);
+
     // If the outputPinState is off, it displays the ON button       
     if (outputPinState==0) 
     {
@@ -112,8 +123,8 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     resp += println(resp, " \r\n");
     *resp++ = '\0';
 
-
     //----------------------------- End of html page response -------------------------------------
+    http_response_active = FALSE;
 
     /* Get header value string length and allocate memory for length + 1,
      * extra byte for null termination */
@@ -387,5 +398,17 @@ void app_main(void)
     ADC_start_task();
     uart_start_task();
     enc28j60_init();
+
+
+    while(1)
+    {
+        if(http_response_active == FALSE)
+        {
+            ADC_get_values(&system_params);
+            ESP_LOGI(TAG, "Uab = %d", system_params.Uab);
+        }
+
+        vTaskDelay(60);
+    }
 
 }
