@@ -24,7 +24,7 @@
 #define TIMER_DIVIDER         (16)  //  Hardware timer clock divider
 #define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER)  // convert counter value to seconds
 #define SINE_SPEED            10
-#define NVALUES               32
+#define NVALUES               40
 
 // ======================================================================
 //  TYPE DEFINITIONS
@@ -50,6 +50,7 @@ typedef struct {
 // LOCAL VARIABLES
 // ======================================================================
 
+static volatile float sine_scale = 40.0;    // 50 - maximum value - 100%
 static xQueueHandle s_timer_queue;
 
 // ======================================================================
@@ -139,7 +140,6 @@ static void sine_timer_task(void *arg)
     int pos;
     int duty_a = 0;
     int duty_b = NVALUES / 2;
-    float sine_scale = 85.0;
 
     /* Prepare sine values array */
     for(pos = 0; pos < NVALUES; ++pos)
