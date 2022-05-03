@@ -24,7 +24,7 @@
 #define TIMER_DIVIDER         (16)  //  Hardware timer clock divider
 #define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER)  // convert counter value to seconds
 #define SINE_SPEED            10
-#define NVALUES               40
+#define NVALUES               128
 
 // ======================================================================
 //  TYPE DEFINITIONS
@@ -182,5 +182,5 @@ static void sine_timer_task(void *arg)
  */
 void app_sine_timer(void)
 {
-    xTaskCreatePinnedToCore(sine_timer_task, "sine_timer_task", 1024, NULL, 2, NULL, 1);
+    xTaskCreatePinnedToCore(sine_timer_task, "sine_timer_task", 4096, NULL, 2, NULL, 1);
 }
