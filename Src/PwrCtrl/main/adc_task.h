@@ -12,7 +12,13 @@ extern "C" {
 // CONSTANT DEFINITIONS
 // ======================================================================
 
-
+// Coefficients for converting voltage value to physical values
+#define K_U_SETI     210
+#define K_U_INV      1
+#define K_I_AB       1
+#define K_I_TE       1
+#define K_U_AB       10
+#define K_U_TE       1
 
 // ======================================================================
 //  TYPE DEFINITIONS

@@ -79,7 +79,7 @@ static void echo_task(void *arg)
 }
 
 
-void uart_start_task(void)
+void UART_start_task(void)
 {
     xTaskCreatePinnedToCore(echo_task, "uart_echo_task", 2048, NULL, 10, NULL, 0);
 }

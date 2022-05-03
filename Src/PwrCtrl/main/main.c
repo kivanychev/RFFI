@@ -394,10 +394,18 @@ void app_main(void)
 
     pwm_init();
 
-    app_sine_timer();
+    Sine_start_task();
     ADC_start_task();
-    uart_start_task();
+    UART_start_task();
     enc28j60_init();
+
+
+    // Sine Soft Start
+    for(float scale = MIN_SINE_AMPLITUDE; scale < (MAX_SINE_AMPLITUDE - MAX_SINE_AMPLITUDE * 0.1); scale += 1.0)
+    {
+        Sine_set_amplitude(scale);
+        vTaskDelay(2);
+    }
 
 
     while(1)

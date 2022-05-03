@@ -14,6 +14,7 @@
         "adc.h": "c",
         "adc_tack.h": "c",
         "esp_netif.h": "c",
-        "adc_task.h": "c"
+        "adc_task.h": "c",
+        "cmath": "c"
     }
 }

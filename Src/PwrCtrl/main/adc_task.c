@@ -40,14 +40,6 @@
 
 ParamDataFrame_t param_data_frame;
 
-// Coefficients for converting voltage value to physical values
-static uint32_t k_Useti = 1;
-static uint32_t k_Uinv = 1;
-static uint32_t k_Iab = 1;
-static uint32_t k_Ite = 1;
-static uint32_t k_Uab = 10;
-static uint32_t k_Ute = 1;
-
 // Used as a request flag for getting measured data by ADC_get_values()
 static volatile int get_data_request_flag = FALSE;
 
@@ -199,12 +191,12 @@ void adc_task(void *args)
         // Checking if some one wants to get measured data
         if( ThereIsDataFrameRequest() )
         {
-            param_data_frame.Uab = params[ADC_CH_U_AB].voltage * k_Uab;
-            param_data_frame.Uinv = params[ADC_CH_U_INV].voltage * k_Uinv;
-            param_data_frame.Iab = params[ADC_CH_I_AB].voltage * k_Iab;
-            param_data_frame.Ite = params[ADC_CH_I_TE].voltage * k_Ite;
-            param_data_frame.Useti = params[ADC_CH_U_SETI].voltage * k_Useti;
-            param_data_frame.Ute = params[ADC_CH_U_TE].voltage * k_Ute;
+            param_data_frame.Uab = params[ADC_CH_U_AB].voltage * K_U_AB;
+            param_data_frame.Uinv = params[ADC_CH_U_INV].voltage * K_U_INV;
+            param_data_frame.Iab = params[ADC_CH_I_AB].voltage * K_I_AB;
+            param_data_frame.Ite = params[ADC_CH_I_TE].voltage * K_I_TE;
+            param_data_frame.Useti = params[ADC_CH_U_SETI].voltage * K_U_SETI;
+            param_data_frame.Ute = params[ADC_CH_U_TE].voltage * K_U_TE;
 
             // Reset flag
             DataFrameRequestComplete();

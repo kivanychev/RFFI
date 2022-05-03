@@ -17,14 +17,16 @@
 
 #include <esp_log.h>
 
+#include "sine_timer.h"
+
 // ======================================================================
 // CONSTANT DEFINITIONS
 // ======================================================================
 
-#define TIMER_DIVIDER         (16)  //  Hardware timer clock divider
-#define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER)  // convert counter value to seconds
-#define SINE_SPEED            10
-#define NVALUES               128
+#define TIMER_DIVIDER           (16)                                //  Hardware timer clock divider
+#define TIMER_SCALE             (TIMER_BASE_CLK / TIMER_DIVIDER)    // convert counter value to seconds
+#define SINE_SPEED              10
+#define NVALUES                 200                                 // Number of SINE levels
 
 // ======================================================================
 //  TYPE DEFINITIONS
@@ -36,6 +38,7 @@ typedef struct {
     int alarm_interval;
     bool auto_reload;
 } example_timer_info_t;
+
 
 /**
  * @brief A sample structure to pass events from the timer ISR to task
@@ -50,7 +53,7 @@ typedef struct {
 // LOCAL VARIABLES
 // ======================================================================
 
-static volatile float sine_scale = 40.0;    // 50 - maximum value - 100%
+static volatile float sine_scale = MIN_SINE_AMPLITUDE;    // 50 - maximum value - 100% (MAX_SINE_AMPLITUDE)
 static xQueueHandle s_timer_queue;
 
 // ======================================================================
@@ -176,11 +179,32 @@ static void sine_timer_task(void *arg)
     }
 }
 
+
+// ======================================================================
+// EXTERNAL FUNCTION DEFINITIONS
+// ======================================================================
+
+
+/**
+ * @brief Set the amplitude value for Invertor output voltage
+ * 
+ * @param ampl - amplitude value between 0 and MAX_SINE_AMPLITUDE
+ */
+void Sine_set_amplitude(float ampl)
+{
+    if(ampl > MAX_SINE_AMPLITUDE)
+    {
+        sine_scale = MAX_SINE_AMPLITUDE;
+    }
+
+    sine_scale = ampl;
+}
+
 /**
  * @brief Start sine timer task
  * 
  */
-void app_sine_timer(void)
+void Sine_start_task(void)
 {
     xTaskCreatePinnedToCore(sine_timer_task, "sine_timer_task", 4096, NULL, 2, NULL, 1);
 }
