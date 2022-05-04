@@ -39,7 +39,7 @@
 
 static void echo_task(void *arg)
 {
-    /* Configure parameters of an UART driver,
+    /* Configure parameters of UART driver,
      * communication pins and install the driver */
     uart_config_t uart_config = {
         .baud_rate = 19200,
@@ -85,9 +85,43 @@ void UART_start_task(void)
 }
 
 
+uint16_t UART_get_fault_state(void)
+{
+    uint8_t fault_state = FALSE;
+
+    return fault_state;
+}
 
 
+void UART_clear_fault(void)
+{
+
+}
 
 
+uint16_t UART_get_battery_state(void)
+{
+    uint16_t battery_state = 0;
+
+    return battery_state;
+}
+
+
+void UART_set_Iset_level(uint32_t level)
+{
+
+}
+
+
+void UART_set_StartAB(uint8_t level)
+{
+
+}
+
+
+void UART_set_StartInv(uint8_t level)
+{
+
+}
 
 

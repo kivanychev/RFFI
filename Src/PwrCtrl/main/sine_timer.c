@@ -26,7 +26,7 @@
 #define TIMER_DIVIDER           (16)                                //  Hardware timer clock divider
 #define TIMER_SCALE             (TIMER_BASE_CLK / TIMER_DIVIDER)    // convert counter value to seconds
 #define SINE_SPEED              10
-#define NVALUES                 200                                 // Number of SINE levels
+#define NVALUES                 400                                 // Number of SINE levels
 
 // ======================================================================
 //  TYPE DEFINITIONS

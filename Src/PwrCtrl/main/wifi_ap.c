@@ -58,8 +58,8 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
     if (event_id == WIFI_EVENT_AP_STACONNECTED) 
     {
         wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
-        ESP_LOGI(TAG, "station "MACSTR" join, AID=%d",
-                 MAC2STR(event->mac), event->aid);
+        ESP_LOGI(TAG, "station "MACSTR" join, AID=%d, CoreId=%d", 
+                 MAC2STR(event->mac), event->aid, xPortGetCoreID());
     } 
     else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) 
     {
@@ -108,8 +108,8 @@ esp_err_t wifi_init_softap(void)
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
-             EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS, EXAMPLE_ESP_WIFI_CHANNEL);
+    ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d CoreId:%d",
+             EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS, EXAMPLE_ESP_WIFI_CHANNEL, xPortGetCoreID());
 
     return ESP_OK;
 }

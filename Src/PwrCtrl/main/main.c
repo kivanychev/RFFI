@@ -391,9 +391,7 @@ void app_main(void)
     server = start_webserver();
 
     gpio_test();
-
     pwm_init();
-
     Sine_start_task();
     ADC_start_task();
     UART_start_task();
