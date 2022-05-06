@@ -15,11 +15,11 @@
 
 // Index values for channels[] and param_values[] array
 typedef enum {
-    ADC_CH_U_AB = 0,
+    ADC_CH_U_SETI = 0,
     ADC_CH_U_INV,   
     ADC_CHA_I_AB,
     ADC_CHA_I_TE,
-    ADC_CHA_U_SETI,
+    ADC_CHA_U_AB,
     ADC_CHA_U_TE,
 
     ADC_LAST_PARAM
@@ -29,8 +29,8 @@ typedef enum {
 
 static esp_adc_cal_characteristics_t *adc_chars;
 
-static const adc_channel_t channels[6] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_6, ADC_CHANNEL_7 };
-static char* param_names[6] = {"Uab", "Uinv", "Iab", "Ite", "Useti", "Ute"};
+static const adc_channel_t channels[6] = {ADC_CHANNEL_6, ADC_CHANNEL_3, ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_0, ADC_CHANNEL_7 };
+static char* param_names[6] = {"Useti", "Uinv", "Iab", "Ite", "Uab", "Ute"};
 static uint16_t param_values[6];
 
 static const adc_bits_width_t width = ADC_WIDTH_BIT_12;
