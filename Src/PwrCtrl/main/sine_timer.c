@@ -7,16 +7,19 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <stdio.h>
+#include "math.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/timer.h"
+#include "driver/mcpwm.h"
 
-#include "pwm_control.h"
-#include "math.h"
+#include "soc/mcpwm_periph.h"
 
 #include <esp_log.h>
 
+#include "pwm_control.h"
 #include "sine_timer.h"
 
 // ======================================================================
@@ -206,5 +209,5 @@ void Sine_set_amplitude(float ampl)
  */
 void Sine_start_task(void)
 {
-    xTaskCreatePinnedToCore(sine_timer_task, "sine_timer_task", 4096, NULL, 2, NULL, 1);
+    xTaskCreatePinnedToCore(sine_timer_task, "sine_timer_task", 8192, NULL, 2, NULL, 1);
 }
