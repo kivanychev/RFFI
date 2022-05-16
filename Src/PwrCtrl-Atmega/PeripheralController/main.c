@@ -22,10 +22,10 @@
 
 // Pins on PortB
 #define B_AT_BAT9_PIN           0
-#define B_START_AB              1
-#define B_START_INV             2
-#define B_CLR_FAULT             4
-#define B_FAULT                 5
+#define B_START_AB_PIN          1
+#define B_START_INV_PIN         2
+#define B_CLR_FAULT_PIN         4
+#define B_FAULT_PIN             5
 
 
 // Pins on PortC
@@ -64,14 +64,14 @@
 //---------------------------------------------------------------------------------------
 
 // Fault ON -> 0, Fault Off -> 1
-#define ClearFault_ON()     PORTB &= (0xFF - (1 << B_FAULT) )
-#define ClearFault_OFF()    PORTB |= (1 << B_FAULT)
+#define ClearFault_ON()     PORTB &= (0xFF - (1 << B_FAULT_PIN) )
+#define ClearFault_OFF()    PORTB |= (1 << B_FAULT_PIN)
 
-#define StartInv_ON()       PORTB |= (1 << B_START_INV)
-#define StartInv_OFF()      PORTB &= (0xFF - (1 << B_START_INV) )
+#define StartInv_ON()       PORTB |= (1 << B_START_INV_PIN)
+#define StartInv_OFF()      PORTB &= (0xFF - (1 << B_START_INV_PIN) )
 
-#define StartAB_ON()        PORTB |= (1 << B_START_AB)
-#define StartAB_OFF()       PORTB &= (0xFF - (1 << B_START_AB) )
+#define StartAB_ON()        PORTB |= (1 << B_START_AB_PIN)
+#define StartAB_OFF()       PORTB &= (0xFF - (1 << B_START_AB_PIN) )
 
 #define I_set(level)        OCR0A = level
 
@@ -107,8 +107,6 @@ unsigned char data_buffer_out[DATA_LEN_OUT];
 
 // Flag is set on ClearFault command reception. It is intended for controlling ClearFault signal via Timer1
 unsigned char f_clear_fault = STOP;
-
-
 
 //---------------------------------------------------------------------------------------
 //      FUNCTION PROTOTYPES
@@ -179,15 +177,35 @@ void UART0_Init(void)
 }
 
 /**
+ * @brief Sends byte array over UART0
+ * 
+ * @param bytes - byte array for sending to UART0
+ * @param len - number of bytes to send
+ */
+void UART0_SendBytes(unsigned char *bytes, unsigned char len)
+{
+    unsigned char ind;
+
+    for(ind = 0; ind < len; ++ind)
+    {
+        // wait for data to be received
+        while( !(UCSR0A & (1<<UDRE0)) );
+
+        // send data
+        UDR0 = bytes[ind];
+    }
+}
+
+
+/**
  * @brief Sends string over UART0
  * 
  * @param str - String for sending to UART0
  */
 void UART0_SendStr(char *str)
 {
-    static unsigned char ind;
+    unsigned char ind;
 
-    //cli();
     for(ind = 0; str[ind] != '\0'; ++ind)
     {
         // wait for data to be received
@@ -196,7 +214,6 @@ void UART0_SendStr(char *str)
         // send data
         UDR0 = str[ind];
     }
-    //sei();
 }
 
 
@@ -209,7 +226,7 @@ void UART0_SendStr(char *str)
 void GPIO_Init(void)
 {
     // Setting output pins for PortB
-    DDRB = (1 << B_START_AB) | (1 << B_START_INV) | (1 << D_TXD0) | (1 << B_CLR_FAULT);
+    DDRB = (1 << B_START_AB_PIN) | (1 << B_START_INV_PIN) | (1 << D_TXD0) | (1 << B_CLR_FAULT_PIN);
 
     // Setting output pins for PortD
     DDRD = (1 << D_I_SET_PIN);
@@ -324,6 +341,7 @@ ISR(TIMER1_COMPA_vect)
     {
         ClearFault_ON();
     }
+    
 }
 
 
@@ -345,7 +363,56 @@ int main(void)
 
     while (1) 
     {
-        UART0_SendStr("Mega\r\n");
+        unsigned char data0 = 0;
+        unsigned char data1 = 0;
+        
+        if( (1 << D_AT_BAT1_PIN ) & PIND )
+            data0 |= (1 << 0);
+            
+        if( (1 << D_AT_BAT2_PIN ) & PIND )
+            data0 |= (1 << 1);
+     
+        if( (1 << D_AT_BAT3_PIN ) & PIND )
+            data0 |= (1 << 2);
+
+        if( (1 << C_AT_BAT4_PIN ) & PINC )
+            data0 |= (1 << 3);
+
+        if( (1 << D_AT_BAT5_PIN ) & PIND )
+            data0 |= (1 << 4);
+
+        if( (1 << C_AT_BAT6_PIN ) & PINC )
+            data0 |= (1 << 5);
+
+        if( (1 << D_AT_BAT7_PIN ) & PIND )
+            data0 |= (1 << 6);
+
+        if( (1 << C_AT_BAT8_PIN ) & PINC )
+            data0 |= (1 << 7);
+
+
+        if( (1 << B_AT_BAT9_PIN ) & PINB )
+            data1 |= (1 << 0);
+
+        if( (1 << C_AT_BAT10_PIN) & PINC )
+            data1 |= (1 << 1);
+
+        if( (1 << C_AT_BAT11_PIN) & PINC )
+            data1 |= (1 << 2);
+
+        if( (1 << C_AT_BAT12_PIN) & PINC )
+            data1 |= (1 << 3);
+
+
+        if( (1 << B_FAULT_PIN) & PINB )
+            data1 |= (1 << 7);
+
+        
+        data_buffer_out[0] = data0;
+        data_buffer_out[1] = data1;
+        
+        UART0_SendBytes(preamble, sizeof(preamble));
+        UART0_SendBytes(&data_buffer_out[0], DATA_LEN_OUT);
     }             
 }
 
