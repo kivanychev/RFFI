@@ -105,7 +105,7 @@ unsigned char preamble[] = { 0xFF, 0xFF };
 unsigned char data_buffer_in[DATA_LEN_IN];
 unsigned char data_buffer_out[DATA_LEN_OUT];
 
-// Flag is set on ClearFault command reception. It is intended for controlling ClearFault signal via Timer1
+// Flag is set on ClearFault command reception. It is intended for starting ClearFault signal via Timer1
 unsigned char f_clear_fault = STOP;
 
 //---------------------------------------------------------------------------------------
@@ -170,7 +170,7 @@ void UART0_Init(void)
     UCSR0A = 0x00;
 
     UCSR0B = (1 << TXEN0) | (1 << RXEN0) | (1 << RXCIE0);
-    UCSR0C = (1 << UCSZ01) + (1 << UCSZ00);                 // 8 bit data frame глава 20.11.4
+    UCSR0C = (1 << UCSZ01) + (1 << UCSZ00); 
 
     UBRR0H = UART0_UBRR >> 8;
     UBRR0L = UART0_UBRR;
@@ -233,15 +233,6 @@ void GPIO_Init(void)
 
 }
 
-/**
- * @brief Starts Clear Fault pulse generation
- * 
- */
-void ClearFault(void)
-{
-
-}
-
 
 //---------------------------------------------------------------------------------------
 // INTERRUPT HANDLERS
@@ -253,8 +244,7 @@ void ClearFault(void)
 ISR(USART_RX_vect)
 {
     static UART_state_t uart_state = UART_GET_PREAMBLE;
-
-    short ind = 0;
+    static short ind = 0;
 
     // Read byte from UART
     unsigned char c = UDR0;
@@ -281,11 +271,11 @@ ISR(USART_RX_vect)
         data_buffer_in[ind] = c;
         ind++;
 
-        PARAM_code_t param_code = (PARAM_code_t)(data_buffer_in[PARAM_CODE_IND]);
-        unsigned char param_value = data_buffer_in[PARAM_VALUE_IND];
-
         if(ind >= DATA_LEN_IN)
         {
+            PARAM_code_t param_code = (PARAM_code_t)(data_buffer_in[PARAM_CODE_IND]);
+            unsigned char param_value = data_buffer_in[PARAM_VALUE_IND];
+
             // Apply received parameter
             switch(param_code)
             {
