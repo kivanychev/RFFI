@@ -17,7 +17,10 @@
         "adc_task.h": "c",
         "cmath": "c",
         "mcpwm_periph.h": "c",
-        "timer.h": "c"
+        "timer.h": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c"
     },
     "idf.flashType": "UART"
 }
