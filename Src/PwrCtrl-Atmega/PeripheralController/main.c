@@ -64,8 +64,8 @@
 //---------------------------------------------------------------------------------------
 
 // Fault ON -> 0, Fault Off -> 1
-#define ClearFault_ON()     PORTB &= (0xFF - (1 << B_FAULT_PIN) )
-#define ClearFault_OFF()    PORTB |= (1 << B_FAULT_PIN)
+#define ClearFault_ON()     PORTB &= (0xFF - (1 << B_CLR_FAULT_PIN) )
+#define ClearFault_OFF()    PORTB |= (1 << B_CLR_FAULT_PIN)
 
 #define StartInv_ON()       PORTB |= (1 << B_START_INV_PIN)
 #define StartInv_OFF()      PORTB &= (0xFF - (1 << B_START_INV_PIN) )
@@ -332,12 +332,23 @@ ISR(USART_RX_vect)
  */
 ISR(TIMER1_COMPA_vect)
 {
-    
-    ClearFault_OFF();
+    static int cnt = 1;
+
+    if(f_clear_fault == STOP)
+    { 
+        ClearFault_OFF();    
+    }        
 
     if(f_clear_fault == START)
     {
+        cnt--;
         ClearFault_ON();
+        
+        if(cnt == 0)
+        {
+            f_clear_fault = STOP;
+            cnt = 1;
+        }
     }
     
 }
@@ -353,6 +364,7 @@ int main(void)
     GPIO_Init();
     UART0_Init();
     Timer0_Init();
+    Timer1_Init();
     
     // Initialize Clear Fault signal to 1 (OFF)
     ClearFault_OFF();
