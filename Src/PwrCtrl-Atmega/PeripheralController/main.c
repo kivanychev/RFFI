@@ -231,6 +231,13 @@ void GPIO_Init(void)
     // Setting output pins for PortD
     DDRD = (1 << D_I_SET_PIN);
 
+    // Set pull ups at the input pins
+    PORTB = (1 << B_AT_BAT9_PIN);
+    PORTC = (1 << C_AT_BAT4_PIN) | (1 << C_AT_BAT6_PIN) | (1 << C_AT_BAT8_PIN) | (1 << C_AT_BAT10_PIN) |
+            (1 << C_AT_BAT11_PIN) | (1 << C_AT_BAT12_PIN);
+    PORTD = (1 << D_AT_BAT1_PIN) | (1 << D_AT_BAT2_PIN) | (1 << D_AT_BAT3_PIN) | (1 << D_AT_BAT5_PIN) | 
+            (1 << D_AT_BAT7_PIN);
+
 }
 
 
@@ -325,6 +332,7 @@ ISR(USART_RX_vect)
  */
 ISR(TIMER1_COMPA_vect)
 {
+    
     ClearFault_OFF();
 
     if(f_clear_fault == START)
@@ -348,6 +356,8 @@ int main(void)
     
     // Initialize Clear Fault signal to 1 (OFF)
     ClearFault_OFF();
+    StartInv_ON();
+    StartAB_ON();
 
     sei();
 
