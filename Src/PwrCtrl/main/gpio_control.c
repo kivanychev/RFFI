@@ -15,6 +15,8 @@
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 
+#include "sine_timer.h"
+
 #include <esp_log.h>
 
 /**
@@ -34,15 +36,17 @@
  *
  */
 
-#define GPIO_OUTPUT_IO_0    13
+#define LED_GPIO    13
+
 // UART level converter enable
 #define GPIO_OUTPUT_UART_EN    21
-#define GPIO_OUTPUT_PIN_SEL  ((1ULL<<GPIO_OUTPUT_IO_0) | (1ULL<<GPIO_OUTPUT_UART_EN))
+#define GPIO_OUTPUT_PIN_SEL  ((1ULL << LED_GPIO) | (1ULL << GPIO_OUTPUT_UART_EN))
 
-#define GPIO_INPUT_IO_0     0
-#define GPIO_INPUT_IO_1     15
-#define GPIO_INPUT_PIN_SEL  ((1ULL<<GPIO_INPUT_IO_0) | (1ULL<<GPIO_INPUT_IO_1))
-#define ESP_INTR_FLAG_DEFAULT 0
+#define BOOT_PIN_GPIO           0
+#define SB2_GPIO                15
+#define SB1_GPIO                2
+#define GPIO_INPUT_PIN_SEL      ((1ULL << BOOT_PIN_GPIO) | (1ULL << SB2_GPIO) )
+#define ESP_INTR_FLAG_DEFAULT   0
 
 
 static xQueueHandle gpio_evt_queue = NULL;
@@ -67,10 +71,33 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
 static void gpio_task_example(void* arg)
 {
     uint32_t io_num;
-    for(;;) {
-        if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
-            ESP_LOGI("GPIO", "GPIO[%d] intr, val: %d\n", io_num, gpio_get_level(io_num));
+    float scale = 0.9 * MAX_SINE_AMPLITUDE;
+    float step = -2.0;
+
+    while(1) 
+    {
+        if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) 
+        {
+            if(io_num == SB2_GPIO)
+            {
+                if(scale >= (MAX_SINE_AMPLITUDE - MIN_SINE_AMPLITUDE) )
+                {
+                    step = -2.0;
+                }
+
+                if(scale <= MIN_SINE_AMPLITUDE)
+                {
+                    step = 2;
+                }
+
+                scale += step;
+                ESP_LOGI("GPIO", "\r\nSet amplitude scale to %f", scale);
+                Sine_set_amplitude(scale);
+
+            }
         }
+
+    vTaskDelay(5);
     }
 }
 
@@ -81,7 +108,7 @@ static void gpio_task_example(void* arg)
  */
 void LEDstate(uint32_t state)
 {
-    gpio_set_level(GPIO_OUTPUT_IO_0, state);
+    gpio_set_level(LED_GPIO, state);
 }
 
 /**
@@ -98,7 +125,7 @@ void UARTenable(void)
  * @brief Main GPIO test function: Configures GPIO direction, interrupts
  * 
  */
-void gpio_test(void)
+void GPIO_init(void)
 {
     gpio_config_t io_conf;
     //disable interrupt
@@ -125,7 +152,7 @@ void gpio_test(void)
     gpio_config(&io_conf);
 
     //change gpio intrrupt type for one pin
-    gpio_set_intr_type(GPIO_INPUT_IO_0, GPIO_INTR_NEGEDGE);
+    gpio_set_intr_type(BOOT_PIN_GPIO, GPIO_INTR_NEGEDGE);
 
     //create a queue to handle gpio event from isr
     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
@@ -134,24 +161,8 @@ void gpio_test(void)
 
     //install gpio isr service
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+
     //hook isr handler for specific gpio pin
-    gpio_isr_handler_add(GPIO_INPUT_IO_0, gpio_isr_handler, (void*) GPIO_INPUT_IO_0);
-    //hook isr handler for specific gpio pin
-    gpio_isr_handler_add(GPIO_INPUT_IO_1, gpio_isr_handler, (void*) GPIO_INPUT_IO_1);
+    gpio_isr_handler_add(SB2_GPIO, gpio_isr_handler, (void*) SB2_GPIO);
 
-    //remove isr handler for gpio number.
-    gpio_isr_handler_remove(GPIO_INPUT_IO_0);
-    //hook isr handler for specific gpio pin again
-    gpio_isr_handler_add(GPIO_INPUT_IO_0, gpio_isr_handler, (void*) GPIO_INPUT_IO_0);
-
-
-/*
-    int cnt = 0;
-    while(1) {
-        ESP_LOGI("ADC", "cnt: %d\n", cnt++);
-        vTaskDelay(1000 / portTICK_RATE_MS);
-        gpio_set_level(GPIO_OUTPUT_IO_0, cnt % 2);
-    }
-    */
 }
-

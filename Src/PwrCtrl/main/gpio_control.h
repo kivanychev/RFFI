@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-void gpio_test(void);
+void GPIO_init(void);
 void LEDstate(uint32_t state);
 void UARTenable(void);
 

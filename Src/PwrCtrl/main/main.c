@@ -390,7 +390,7 @@ void app_main(void)
     /* Start the server for the first time */
     server = start_webserver();
 
-    gpio_test();
+    GPIO_init();
     pwm_init();
     Sine_start_task();
     ADC_start_task();
@@ -399,7 +399,7 @@ void app_main(void)
 
 
     // Sine Soft Start
-    for(float scale = MIN_SINE_AMPLITUDE; scale < (MAX_SINE_AMPLITUDE - MAX_SINE_AMPLITUDE * 0.1); scale += 1.0)
+    for(float scale = MIN_SINE_AMPLITUDE; scale < (MAX_SINE_AMPLITUDE * 0.9); scale += 1.0)
     {
         Sine_set_amplitude(scale);
         vTaskDelay(2);
@@ -411,7 +411,7 @@ void app_main(void)
         if(http_response_active == FALSE)
         {
             ADC_get_values(&system_params);
-            ESP_LOGI(TAG, "Uab = %d", system_params.Uab);
+            ESP_LOGD(TAG, "Uab = %d", system_params.Uab);
         }
 
         vTaskDelay(60);

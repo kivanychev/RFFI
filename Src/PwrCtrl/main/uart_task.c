@@ -102,7 +102,9 @@ static void uart_task(void *arg)
 
     UART_state_t uart_state = UART_GET_PREAMBLE;
 
-    unsigned char preamble[] = { 0xFF, 0xFF };      //Preamble for sent/received data over UART
+    uint8_t preamble[] = { 0xFF, 0xFF };      //Preamble for sent/received data over UART
+    uint8_t send_data[] = { 0xFF, 0xFF, PARAM_Iset, 0};
+    uint8_t i_set = 0;
 
 
     while (1) 
@@ -146,13 +148,38 @@ static void uart_task(void *arg)
                 }
             }
 
-            ESP_LOGI("UART", "%2X %2X, len = %d", data[0], data[1], len);  
+            ESP_LOGI("UART", "%2X %2X, i_set = %d", data[0], data[1], i_set);  
+        }
+
+
+        // Sending test data to Peripheral controller
+        i_set++;
+        send_data[3] = i_set;
+        send_data[2] = PARAM_Iset;
+        uart_write_bytes(UART_NUM_1, (const char *) send_data, sizeof(send_data));
+
+        send_data[2] = PARAM_ClearFault;
+        uart_write_bytes(UART_NUM_1, (const char *) send_data, sizeof(send_data));
+
+        if(i_set % 2 == 0)
+        {
+            send_data[2] = PARAM_StartInv_ON;
+            uart_write_bytes(UART_NUM_1, (const char *) send_data, sizeof(send_data));
+
+            send_data[2] = PARAM_StartAB_ON;
+            uart_write_bytes(UART_NUM_1, (const char *) send_data, sizeof(send_data));
+        }
+        else
+        {
+            send_data[2] = PARAM_StartInv_OFF;
+            uart_write_bytes(UART_NUM_1, (const char *) send_data, sizeof(send_data));
+
+            send_data[2] = PARAM_StartAB_OFF;
+            uart_write_bytes(UART_NUM_1, (const char *) send_data, sizeof(send_data));
         }
 
         vTaskDelay(100);
 
-        // Write data back to the UART
-        //uart_write_bytes(UART_NUM_1, (const char *) data, len);
     }
 }
 

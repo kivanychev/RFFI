@@ -14,16 +14,6 @@
 // TYPES
 // ======================================================================
 
-// Parameter codes for sending to ATmega
-typedef enum {
-    PARAM_CLEAR_FAULT,
-    PARAM_START_INV_ON,
-    PARAM_START_INV_OFF,
-    PARAM_START_AB_ON,
-    PARAM_START_AB_OFF,
-    PARAM_I_SET
-
-} UART_Param_t;
 
 // ======================================================================
 // FUNCTION PROTOTYPES
