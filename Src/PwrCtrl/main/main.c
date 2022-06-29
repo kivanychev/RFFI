@@ -62,7 +62,7 @@ static int print(char *buf, char * str)
 }
 
 /* An HTTP GET handler */
-static esp_err_t hello_get_handler(httpd_req_t *req)
+static esp_err_t index_handler(httpd_req_t *req)
 {
     char*  buf;
     size_t buf_len;
@@ -187,64 +187,42 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
 }
 
 
-static const httpd_uri_t hello = {
-    .uri       = "/hello",
+static const httpd_uri_t index_uri = {
+    .uri       = "/",
     .method    = HTTP_GET,
-    .handler   = hello_get_handler,
+    .handler   = index_handler,
     /* Let's pass response string in user
      * context to demonstrate it's usage */
     .user_ctx  = NULL // helloReply
 };
 
-/* An HTTP POST handler */
-static esp_err_t echo_post_handler(httpd_req_t *req)
+/* Status GET handler */
+static esp_err_t status_handler(httpd_req_t *req)
 {
-    char buf[100];
-    int ret, remaining = req->content_len;
+    static char json_response[1024];
 
-    while (remaining > 0) {
-        /* Read the data for the request */
-        if ((ret = httpd_req_recv(req, buf,
-                        MIN(remaining, sizeof(buf)))) <= 0) {
-            if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-                /* Retry receiving if timeout occurred */
-                continue;
-            }
-            return ESP_FAIL;
-        }
+    char *p = json_response;
+    *p++ = '{';
 
-        /* Send back the same data */
-        httpd_resp_send_chunk(req, buf, ret);
-        remaining -= ret;
+    p += sprintf(p, "\"quality\":%u,", 60);
+    p += sprintf(p, "\"brightness\":%d", 2);
 
-        /* Log data received */
-        ESP_LOGI(TAG, "=========== RECEIVED DATA ==========");
-        ESP_LOGI(TAG, "%.*s", ret, buf);
-        ESP_LOGI(TAG, "====================================");
-    }
-
-    // End response
-    httpd_resp_send_chunk(req, NULL, 0);
-    return ESP_OK;
+    *p++ = '}';
+    *p++ = 0;
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_send(req, json_response, strlen(json_response));
 }
 
-static const httpd_uri_t echo = {
-    .uri       = "/echo",
-    .method    = HTTP_POST,
-    .handler   = echo_post_handler,
+
+static const httpd_uri_t status = {
+    .uri       = "/status",
+    .method    = HTTP_GET,
+    .handler   = status_handler,
     .user_ctx  = NULL
 };
 
 /* This handler allows the custom error handling functionality to be
- * tested from client side. For that, when a PUT request 0 is sent to
- * URI /ctrl, the /hello and /echo URIs are unregistered and following
- * custom error handler http_404_error_handler() is registered.
- * Afterwards, when /hello or /echo is requested, this custom error
- * handler is invoked which, after sending an error message to client,
- * either closes the underlying socket (when requested URI is /echo)
- * or keeps it open (when requested URI is /hello). This allows the
- * client to infer if the custom error handler is functioning as expected
- * by observing the socket state.
  */
 esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 {
@@ -262,46 +240,23 @@ esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
     return ESP_FAIL;
 }
 
-/* An HTTP PUT handler. This demonstrates realtime
- * registration and deregistration of URI handlers
+/* Test loading page from file
  */
-static esp_err_t ctrl_put_handler(httpd_req_t *req)
+static esp_err_t ctrl_handler(httpd_req_t *req)
 {
-    char buf;
-    int ret;
+    extern const unsigned char index_html_gz_start[] asm("_binary_index_html_gz_start");
+    extern const unsigned char index_html_gz_end[] asm("_binary_index_html_gz_end");
+    size_t index_html_gz_len = index_html_gz_end - index_html_gz_start;
 
-    if ((ret = httpd_req_recv(req, &buf, 1)) <= 0) {
-        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-            httpd_resp_send_408(req);
-        }
-        return ESP_FAIL;
-    }
-
-    if (buf == '0') {
-        /* URI handlers can be unregistered using the uri string */
-        ESP_LOGI(TAG, "Unregistering /hello and /echo URIs");
-        httpd_unregister_uri(req->handle, "/hello");
-        httpd_unregister_uri(req->handle, "/echo");
-        /* Register the custom error handler */
-        httpd_register_err_handler(req->handle, HTTPD_404_NOT_FOUND, http_404_error_handler);
-    }
-    else {
-        ESP_LOGI(TAG, "Registering /hello and /echo URIs");
-        httpd_register_uri_handler(req->handle, &hello);
-        httpd_register_uri_handler(req->handle, &echo);
-        /* Unregister custom error handler */
-        httpd_register_err_handler(req->handle, HTTPD_404_NOT_FOUND, NULL);
-    }
-
-    /* Respond with empty body */
-    httpd_resp_send(req, NULL, 0);
-    return ESP_OK;
+    httpd_resp_set_type(req, "text/html");
+    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+    return httpd_resp_send(req, (const char *)index_html_gz_start, index_html_gz_len);
 }
 
 static const httpd_uri_t ctrl = {
     .uri       = "/ctrl",
-    .method    = HTTP_PUT,
-    .handler   = ctrl_put_handler,
+    .method    = HTTP_GET,
+    .handler   = ctrl_handler,
     .user_ctx  = NULL
 };
 
@@ -318,8 +273,8 @@ static httpd_handle_t start_webserver(void)
     if (httpd_start(&server, &config) == ESP_OK) {
         // Set URI handlers
         ESP_LOGI(TAG, "Registering URI handlers");
-        httpd_register_uri_handler(server, &hello);
-        httpd_register_uri_handler(server, &echo);
+        httpd_register_uri_handler(server, &index_uri);
+        httpd_register_uri_handler(server, &status);
         httpd_register_uri_handler(server, &ctrl);
         return server;
     }
