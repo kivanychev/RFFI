@@ -152,7 +152,8 @@ static void uart_task(void *arg)
         }
 
 
-        // Sending test data to Peripheral controller
+        //////////////// Sending test data to Peripheral controller /////////////////
+/*
         i_set++;
         send_data[3] = i_set;
         send_data[2] = PARAM_Iset;
@@ -177,8 +178,10 @@ static void uart_task(void *arg)
             send_data[2] = PARAM_StartAB_OFF;
             uart_write_bytes(UART_NUM_1, (const char *) send_data, sizeof(send_data));
         }
+*/
+        //////////////////// TEST CODE ENDS HERE /////////////////////////////////////
 
-        vTaskDelay(100);
+        vTaskDelay(1);
 
     }
 }
@@ -238,9 +241,12 @@ uint16_t UART_get_battery_state(void)
  * @param 
  * @return 
  */
-void UART_set_Iset_level(uint32_t level)
+void UART_set_Iset_level(uint8_t level)
 {
+    static uint8_t data[] = { 0xFF, 0xFF, PARAM_Iset, 0};
 
+    data[3] = level;
+    uart_write_bytes(UART_NUM_1, (const char *) data, sizeof(data));
 }
 
 

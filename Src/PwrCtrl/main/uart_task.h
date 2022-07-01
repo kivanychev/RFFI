@@ -30,7 +30,7 @@ uint16_t UART_get_fault_state(void);
 void UART_clear_fault(void);
 
 uint16_t UART_get_battery_state(void);
-void UART_set_Iset_level(uint32_t level);
+void UART_set_Iset_level(uint8_t level);
 void UART_set_StartAB(uint8_t level);
 void UART_set_StartInv(uint8_t level);
 

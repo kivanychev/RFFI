@@ -245,6 +245,7 @@ static const httpd_uri_t index_uri = {
 // STATUS HANDLER
 // -----------------------------------------------
 
+
 /* Status GET handler */
 static esp_err_t status_handler(httpd_req_t *req)
 {
@@ -284,7 +285,6 @@ static const httpd_uri_t status = {
 // -----------------------------------------------
 
 
-
 /* Page from file index.html
  */
 static esp_err_t ctrl_handler(httpd_req_t *req)
@@ -307,8 +307,9 @@ static const httpd_uri_t ctrl_uri = {
 
 
 // -----------------------------------------------
-// SET PWM HANDLER
+// SET SINE SCALE HANDLER
 // -----------------------------------------------
+
 
 static esp_err_t sine_scale_handler(httpd_req_t *req)
 {
@@ -324,8 +325,20 @@ static esp_err_t sine_scale_handler(httpd_req_t *req)
     free(buf);
 
     int sine_scale = atoi(_sine_scale);
+
+    if(sine_scale > 95)
+    {
+        sine_scale = 95;
+    }
+
+    if(sine_scale < 5)
+    {
+        sine_scale = 5;
+    }
+
     ESP_LOGI(TAG, "Set Sine scale: %d ", sine_scale);
 
+    Sine_set_amplitude(MAX_SINE_AMPLITUDE * (float)(sine_scale) / 100.0);
 
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     return httpd_resp_send(req, NULL, 0);
@@ -341,8 +354,9 @@ static const httpd_uri_t sine_scale_uri = {
 
 
 // -----------------------------------------------
-// SET SINE SCALE HANDLER
+// SET PWM HANDLER
 // -----------------------------------------------
+
 
 static esp_err_t pwm_handler(httpd_req_t *req)
 {
@@ -360,6 +374,8 @@ static esp_err_t pwm_handler(httpd_req_t *req)
     int pwm = atoi(_pwm);
     ESP_LOGI(TAG, "Set PWM: %d", pwm);
 
+    UART_set_Iset_level((uint8_t)(pwm));
+
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     return httpd_resp_send(req, NULL, 0);
 }
@@ -376,8 +392,6 @@ static const httpd_uri_t pwm_uri = {
 // -----------------------------------------------
 // SERVER
 // -----------------------------------------------
-
-
 
 
 static httpd_handle_t start_webserver(void)

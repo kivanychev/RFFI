@@ -71,13 +71,15 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
 static void gpio_task_example(void* arg)
 {
     uint32_t io_num;
-    float scale = 0.9 * MAX_SINE_AMPLITUDE;
-    float step = -2.0;
+//    float scale = 0.9 * MAX_SINE_AMPLITUDE;
+//    float step = -2.0;
 
     while(1) 
     {
         if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) 
         {
+
+/*            
             if(io_num == SB2_GPIO)
             {
                 if(scale >= (MAX_SINE_AMPLITUDE - MIN_SINE_AMPLITUDE) )
@@ -95,9 +97,12 @@ static void gpio_task_example(void* arg)
                 Sine_set_amplitude(scale);
 
             }
+*/
+
         }
 
-    vTaskDelay(5);
+//    vTaskDelay(5);
+
     }
 }
 
