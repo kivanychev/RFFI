@@ -46,6 +46,43 @@ ParamDataFrame_t system_params;
 // LOCAL FUNCTIONS
 // ===================================================================
 
+/**
+ * @brief Parses GET request result
+ * 
+ * @param req       request instance pointer
+ * @param obuf      output buffer for placing parse result
+ * @return esp_err_t 
+ */
+static esp_err_t parse_get(httpd_req_t *req, char **obuf)
+{
+    char *buf = NULL;
+    size_t buf_len = 0;
+
+    buf_len = httpd_req_get_url_query_len(req) + 1;
+    if (buf_len > 1) {
+        buf = (char *)malloc(buf_len);
+        if (!buf) {
+            httpd_resp_send_500(req);
+            return ESP_FAIL;
+        }
+        if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
+            *obuf = buf;
+            return ESP_OK;
+        }
+        free(buf);
+    }
+    httpd_resp_send_404(req);
+    return ESP_FAIL;
+}
+
+
+/**
+ * @brief 
+ * 
+ * @param buf 
+ * @param str 
+ * @return int 
+ */
 static int println(char *buf, char * str)
 {
     int len = sprintf(buf, str);
@@ -56,6 +93,13 @@ static int println(char *buf, char * str)
     return len + 2;
 }
 
+/**
+ * @brief 
+ * 
+ * @param buf 
+ * @param str 
+ * @return int 
+ */
 static int print(char *buf, char * str)
 {
     return sprintf(buf, str);
@@ -196,6 +240,11 @@ static const httpd_uri_t index_uri = {
     .user_ctx  = NULL // helloReply
 };
 
+
+// -----------------------------------------------
+// STATUS HANDLER
+// -----------------------------------------------
+
 /* Status GET handler */
 static esp_err_t status_handler(httpd_req_t *req)
 {
@@ -204,8 +253,15 @@ static esp_err_t status_handler(httpd_req_t *req)
     char *p = json_response;
     *p++ = '{';
 
-    p += sprintf(p, "\"quality\":%u,", 60);
-    p += sprintf(p, "\"brightness\":%d", 2);
+    p += sprintf(p, "\"u_seti\":%u.%u,", system_params.Useti/1000, system_params.Useti % 1000);
+    p += sprintf(p, "\"u_inv\":%u.%u,", system_params.Uinv/1000, system_params.Uinv % 1000);
+    p += sprintf(p, "\"i_te\":%u.%u,", system_params.Ite/1000, system_params.Ite % 1000);
+    p += sprintf(p, "\"u_te\":%u.%u,", system_params.Ute/1000, system_params.Ute % 1000);
+    p += sprintf(p, "\"u_ab\":%u.%u,", system_params.Uab/1000, system_params.Uab % 1000);
+    p += sprintf(p, "\"i_ab\":%u.%u,", system_params.Iab/1000, system_params.Iab % 1000);   
+    p += sprintf(p, "\"batteries\":%s,", "\"1111 0101 1011\"");
+    p += sprintf(p, "\"start_inv\":%u,", 1);
+    p += sprintf(p, "\"start_ab\":%u", 0);
 
     *p++ = '}';
     *p++ = 0;
@@ -222,25 +278,14 @@ static const httpd_uri_t status = {
     .user_ctx  = NULL
 };
 
-/* This handler allows the custom error handling functionality to be
- */
-esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
-{
-    if (strcmp("/hello", req->uri) == 0) {
-        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "/hello URI is not available");
-        /* Return ESP_OK to keep underlying socket open */
-        return ESP_OK;
-    } else if (strcmp("/echo", req->uri) == 0) {
-        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "/echo URI is not available");
-        /* Return ESP_FAIL to close underlying socket */
-        return ESP_FAIL;
-    }
-    /* For any other URI send 404 and close socket */
-    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Some 404 error message");
-    return ESP_FAIL;
-}
 
-/* Test loading page from file
+// -----------------------------------------------
+// PAGE HANDLER
+// -----------------------------------------------
+
+
+
+/* Page from file index.html
  */
 static esp_err_t ctrl_handler(httpd_req_t *req)
 {
@@ -253,12 +298,87 @@ static esp_err_t ctrl_handler(httpd_req_t *req)
     return httpd_resp_send(req, (const char *)index_html_gz_start, index_html_gz_len);
 }
 
-static const httpd_uri_t ctrl = {
+static const httpd_uri_t ctrl_uri = {
     .uri       = "/ctrl",
     .method    = HTTP_GET,
     .handler   = ctrl_handler,
     .user_ctx  = NULL
 };
+
+
+// -----------------------------------------------
+// SET PWM HANDLER
+// -----------------------------------------------
+
+static esp_err_t sine_scale_handler(httpd_req_t *req)
+{
+    char *buf = NULL;
+    char _sine_scale[32];
+
+    if (parse_get(req, &buf) != ESP_OK ||
+            httpd_query_key_value(buf, "sine_scale", _sine_scale, sizeof(_sine_scale)) != ESP_OK) {
+        free(buf);
+        httpd_resp_send_404(req);
+        return ESP_FAIL;
+    }
+    free(buf);
+
+    int sine_scale = atoi(_sine_scale);
+    ESP_LOGI(TAG, "Set Sine scale: %d ", sine_scale);
+
+
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_send(req, NULL, 0);
+}
+
+
+static const httpd_uri_t sine_scale_uri = {
+    .uri       = "/sine_scale",
+    .method    = HTTP_GET,
+    .handler   = sine_scale_handler,
+    .user_ctx  = NULL
+};
+
+
+// -----------------------------------------------
+// SET SINE SCALE HANDLER
+// -----------------------------------------------
+
+static esp_err_t pwm_handler(httpd_req_t *req)
+{
+    char *buf = NULL;
+    char _pwm[32];
+
+    if (parse_get(req, &buf) != ESP_OK ||
+            httpd_query_key_value(buf, "pwm", _pwm, sizeof(_pwm)) != ESP_OK) {
+        free(buf);
+        httpd_resp_send_404(req);
+        return ESP_FAIL;
+    }
+    free(buf);
+
+    int pwm = atoi(_pwm);
+    ESP_LOGI(TAG, "Set PWM: %d", pwm);
+
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_send(req, NULL, 0);
+}
+
+
+static const httpd_uri_t pwm_uri = {
+    .uri       = "/pwm",
+    .method    = HTTP_GET,
+    .handler   = pwm_handler,
+    .user_ctx  = NULL
+};
+
+
+// -----------------------------------------------
+// SERVER
+// -----------------------------------------------
+
+
+
 
 static httpd_handle_t start_webserver(void)
 {
@@ -275,7 +395,10 @@ static httpd_handle_t start_webserver(void)
         ESP_LOGI(TAG, "Registering URI handlers");
         httpd_register_uri_handler(server, &index_uri);
         httpd_register_uri_handler(server, &status);
-        httpd_register_uri_handler(server, &ctrl);
+        httpd_register_uri_handler(server, &ctrl_uri);
+        httpd_register_uri_handler(server, &sine_scale_uri);
+        httpd_register_uri_handler(server, &pwm_uri);
+        
         return server;
     }
 
