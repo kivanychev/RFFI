@@ -21,7 +21,8 @@
         "array": "c",
         "string": "c",
         "string_view": "c",
-        "sdkconfig.h": "c"
+        "sdkconfig.h": "c",
+        "uart_task.h": "c"
     },
     "idf.flashType": "UART"
 }

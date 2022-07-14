@@ -508,6 +508,60 @@ document.addEventListener('DOMContentLoaded', function (event) {
   }
 
 
+  // --------------
+  // START INVERTOR
+  // --------------
+  const startInvCheckBox = document.getElementById('start_inv')
+
+  function setStartInv(level, cb)
+  {
+    console.log('Set StartInv to ', level.toString(10) );
+    fetchUrl(`${baseHost}/cmd?startInv=${level}`, cb);
+  }
+
+  startInvCheckBox.onchange = () => {
+    let startInv = 0;
+
+    if(startInvCheckBox.checked == true)
+    {
+      startInv = 1;
+    }
+
+    setStartInv(startInv, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
+
+  }
+
+
+  // ----------------
+  // START AB CHARGER
+  // ----------------
+  const startAbCheckBox = document.getElementById('start_ab')
+
+  function setStartAB(level, cb)
+  {
+    console.log('Set StartAB to ', level.toString(10) );
+    fetchUrl(`${baseHost}/cmd?startAB=${level}`, cb);
+  }
+
+  startAbCheckBox.onchange = () => {
+    let startAB = 0;
+
+    if(startAbCheckBox.checked == true)
+    {
+      startAB = 1;
+    }
+
+    setStartAB(startAB, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
+  }
+
 
   // -----------------
   // PWM VALUE SETTING
@@ -515,7 +569,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
   const setPwmButton = document.getElementById('set-pwm')
 
-  function setPwm(pwm, cb){
+  function setPwm(pwm, cb)
+  {
     console.log('Set PWM', pwm.toString(10) );
     fetchUrl(`${baseHost}/pwm?pwm=${pwm}`, cb);
   }
@@ -554,12 +609,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
   }
 
 
-
-
-
-  // -----------------------
-  // READ VALUES FROM SERVER 
-  // -----------------------
+  // --------------------------------------------------
+  // READ VALUES FROM SERVER AND PUT THEM INTO WEB-PAGE
+  // --------------------------------------------------
 
   const updateValue = (el, value, updateRemote) => 
   {
@@ -576,6 +628,10 @@ document.addEventListener('DOMContentLoaded', function (event) {
       }
     }
   }
+
+  // -------------------------------------------
+  // MAKE PAGE DATA TOBE UPDATED EVERY 3 SECONDS
+  // -------------------------------------------
 
   setInterval(
     () => {

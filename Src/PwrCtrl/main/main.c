@@ -36,11 +36,13 @@
 // LOCAL VARIABLES
 // ===================================================================
 
-static const char *TAG = "example";
+static const char *TAG = "MAIN";
 int outputPinState = 1;
 volatile int http_response_active = FALSE;
 
 ParamDataFrame_t system_params;
+volatile uint8_t startInv = FALSE;
+volatile uint8_t startAB = FALSE;
 
 // ===================================================================
 // LOCAL FUNCTIONS
@@ -105,142 +107,6 @@ static int print(char *buf, char * str)
     return sprintf(buf, str);
 }
 
-/* An HTTP GET handler */
-static esp_err_t index_handler(httpd_req_t *req)
-{
-    char*  buf;
-    size_t buf_len;
-
-    http_response_active = TRUE;
-    // --------------------- Send html page as a response -----------------------
-
-    LEDstate(outputPinState);
-
-    char resp_buf[1024];
-    char *resp = resp_buf;
-    resp[0] = '\0';
-    
-    ESP_LOGI(TAG, "URI = %s; Method = %d", &(req->uri[0]), req->method);
-
-    
-    resp += println(resp, "<!DOCTYPE html><html>");
-    resp += println(resp, "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-    resp += println(resp, "<meta charset=\"utf-8\">");    
-    resp += println(resp, "<link rel=\"icon\" href=\"data:,\">");
-
-    // CSS to style the on/off buttons 
-    // Feel free to change the background-color and font-size attributes to fit your preferences
-    resp += println(resp, "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
-    resp += println(resp, ".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
-    resp += println(resp, "text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-    resp += println(resp, ".button2 {background-color: #e34234;}</style></head>");
-            
-    // Web Page Heading
-    resp += println(resp, "<body><h1>Состояние системы электропитания</h1>");
-            
-    // Display current state, and ON/OFF buttons for GPIO 26  
-    resp += print(resp, "<p>Состояние инвертора: ");
-    if (outputPinState == 0)
-        resp += print(resp, "Остановлен");
-    else
-        resp += print(resp, "Включен");
-
-    resp += println(resp, "</p>");
-
-    resp += sprintf(resp, "</p>Uab = %d,%d В</p>\r\n", system_params.Uab/1000, system_params.Uab % 1000);
-
-    // If the outputPinState is off, it displays the ON button       
-    if (outputPinState==0) 
-    {
-        resp += println(resp, "<p><a href=\"/hello\"><button class=\"button\">START</button></a></p>");
-        outputPinState = 1;
-    } 
-    else 
-    {
-        resp += println(resp, "<p><a href=\"/hello\"><button class=\"button button2\">STOP</button></a></p>");
-        outputPinState = 0;
-    } 
-               
-    resp += println(resp, "</body></html>");
-            
-    // The HTTP response ends with another blank line
-    resp += println(resp, " \r\n");
-    *resp++ = '\0';
-
-    //----------------------------- End of html page response -------------------------------------
-    http_response_active = FALSE;
-
-    /* Get header value string length and allocate memory for length + 1,
-     * extra byte for null termination */
-    buf_len = httpd_req_get_hdr_value_len(req, "Host") + 1;
-    if (buf_len > 1) {
-        buf = malloc(buf_len);
-        /* Copy null terminated value string into buffer */
-        if (httpd_req_get_hdr_value_str(req, "Host", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Host: %s", buf);
-        }
-        free(buf);
-    }
-
-
-    /* Read URL query string length and allocate memory for length + 1,
-     * +1 extra byte for null termination */
-    buf_len = httpd_req_get_url_query_len(req) + 1;
-    if (buf_len > 1) 
-    {
-        buf = malloc(buf_len);
-        if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) 
-        {
-            ESP_LOGI(TAG, "Found URL query => %s", buf);
-
-            char param[32];
-            
-            /* Get value of expected key from query string */
-            if (httpd_query_key_value(buf, "query1", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query1=%s", param);
-            }
-            if (httpd_query_key_value(buf, "query3", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query3=%s", param);
-            }
-            if (httpd_query_key_value(buf, "query2", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query2=%s", param);
-            }
-        }
-        free(buf);
-    }
-
-    /* Set some custom headers */
-    httpd_resp_set_hdr(req, "Custom-Header-1", "Custom-Value-1");
-    httpd_resp_set_hdr(req, "Custom-Header-2", "Custom-Value-2");
-
-    /* Send response with custom headers and body set as the
-     * string passed in user context*/
-    
-    ESP_LOGI(TAG, "Sending response: %d bytes", strlen(resp_buf));
-
-    ESP_LOGI(TAG, "%s", resp_buf);
-    httpd_resp_send(req, resp_buf, HTTPD_RESP_USE_STRLEN);
-
-    /* After sending the HTTP response the old HTTP request
-     * headers are lost. Check if HTTP request headers can be read now. */
-    if (httpd_req_get_hdr_value_len(req, "Host") == 0) {
-        ESP_LOGI(TAG, "Request headers lost");
-    }
-    
-    return ESP_OK;
-}
-
-
-static const httpd_uri_t index_uri = {
-    .uri       = "/",
-    .method    = HTTP_GET,
-    .handler   = index_handler,
-    /* Let's pass response string in user
-     * context to demonstrate it's usage */
-    .user_ctx  = NULL // helloReply
-};
-
-
 // -----------------------------------------------
 // STATUS HANDLER
 // -----------------------------------------------
@@ -261,8 +127,8 @@ static esp_err_t status_handler(httpd_req_t *req)
     p += sprintf(p, "\"u_ab\":%u.%u,", system_params.Uab/1000, system_params.Uab % 1000);
     p += sprintf(p, "\"i_ab\":%u.%u,", system_params.Iab/1000, system_params.Iab % 1000);   
     p += sprintf(p, "\"batteries\":%s,", "\"1111 0101 1011\"");
-    p += sprintf(p, "\"start_inv\":%u,", 1);
-    p += sprintf(p, "\"start_ab\":%u", 0);
+    p += sprintf(p, "\"start_inv\":%u,", startInv);
+    p += sprintf(p, "\"start_ab\":%u", startAB);
 
     *p++ = '}';
     *p++ = 0;
@@ -287,7 +153,7 @@ static const httpd_uri_t status = {
 
 /* Page from file index.html
  */
-static esp_err_t ctrl_handler(httpd_req_t *req)
+static esp_err_t index_handler(httpd_req_t *req)
 {
     extern const unsigned char index_html_gz_start[] asm("_binary_index_html_gz_start");
     extern const unsigned char index_html_gz_end[] asm("_binary_index_html_gz_end");
@@ -298,10 +164,10 @@ static esp_err_t ctrl_handler(httpd_req_t *req)
     return httpd_resp_send(req, (const char *)index_html_gz_start, index_html_gz_len);
 }
 
-static const httpd_uri_t ctrl_uri = {
-    .uri       = "/ctrl",
+static const httpd_uri_t index_uri = {
+    .uri       = "/",
     .method    = HTTP_GET,
-    .handler   = ctrl_handler,
+    .handler   = index_handler,
     .user_ctx  = NULL
 };
 
@@ -351,6 +217,57 @@ static const httpd_uri_t sine_scale_uri = {
     .handler   = sine_scale_handler,
     .user_ctx  = NULL
 };
+
+
+// -----------------------------------------------
+// SET CMD HANDLER
+// -----------------------------------------------
+
+static esp_err_t cmd_handler(httpd_req_t *req)
+{
+    char *buf = NULL;
+    char _value[32];
+
+    if (parse_get(req, &buf) == ESP_OK)
+    {
+        if( httpd_query_key_value(buf, "startInv", _value, sizeof(_value)) == ESP_OK )
+        {
+            int value = atoi(_value);
+            ESP_LOGI(TAG, "Command StartInv: %d", value);
+
+            startInv = (uint8_t)(value);
+            UART_set_StartInv(startInv);
+        } 
+        else if( httpd_query_key_value(buf, "startAB", _value, sizeof(_value)) == ESP_OK ) 
+        {
+            int value = atoi(_value);
+            ESP_LOGI(TAG, "Command startAB: %d", value);
+
+            startAB = (uint8_t)(value);
+            UART_set_StartAB(startAB);
+        }
+    }
+    else 
+    {
+        free(buf);
+        httpd_resp_send_404(req);
+        return ESP_FAIL;
+    }
+
+    free(buf);
+
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_send(req, NULL, 0);
+}
+
+
+static const httpd_uri_t cmd_uri = {
+    .uri       = "/cmd",
+    .method    = HTTP_GET,
+    .handler   = cmd_handler,
+    .user_ctx  = NULL
+};
+
 
 
 // -----------------------------------------------
@@ -409,10 +326,10 @@ static httpd_handle_t start_webserver(void)
         ESP_LOGI(TAG, "Registering URI handlers");
         httpd_register_uri_handler(server, &index_uri);
         httpd_register_uri_handler(server, &status);
-        httpd_register_uri_handler(server, &ctrl_uri);
         httpd_register_uri_handler(server, &sine_scale_uri);
         httpd_register_uri_handler(server, &pwm_uri);
-        
+        httpd_register_uri_handler(server, &cmd_uri);
+
         return server;
     }
 
@@ -450,6 +367,8 @@ static void connect_handler(void* arg, esp_event_base_t event_base,
 
 void app_main(void)
 {
+    // Server initialization
+
     static httpd_handle_t server = NULL;
 
     ESP_ERROR_CHECK(nvs_flash_init());
@@ -488,6 +407,12 @@ void app_main(void)
     ADC_start_task();
     UART_start_task();
     enc28j60_init();
+
+    // System initialization
+    startInv = FALSE;
+    startAB = FALSE;
+    UART_set_StartInv(startInv);
+    UART_set_StartAB(startAB);
 
 
     // Sine Soft Start

@@ -210,14 +210,16 @@ uint16_t UART_get_fault_state(void)
 
 
 /**
- * @brief 
+ * @brief Sends command to Atmega for performing clear pulse to the Invertor's driver
  * 
  * @param 
  * @return 
  */
 void UART_clear_fault(void)
 {
+    static uint8_t data[] = { 0xFF, 0xFF, PARAM_ClearFault, 0};
 
+    uart_write_bytes(UART_NUM_1, (const char *) data, sizeof(data));
 }
 
 
@@ -258,7 +260,15 @@ void UART_set_Iset_level(uint8_t level)
  */
 void UART_set_StartAB(uint8_t level)
 {
-
+    static uint8_t data[] = { 0xFF, 0xFF, PARAM_StartAB_ON, 0};
+    
+    if(level == ON)
+    {
+        data[2] = PARAM_StartAB_ON;
+    } else {
+        data[2] = PARAM_StartAB_OFF;
+    }
+    uart_write_bytes(UART_NUM_1, (const char *) data, sizeof(data));
 }
 
 
@@ -270,7 +280,16 @@ void UART_set_StartAB(uint8_t level)
  */
 void UART_set_StartInv(uint8_t level)
 {
+    static uint8_t data[] = { 0xFF, 0xFF, PARAM_StartInv_ON, 0};
 
+    if(level == ON)
+    {
+        data[2] = PARAM_StartInv_ON;
+    } else {
+        data[2] = PARAM_StartInv_OFF;
+    }
+
+    uart_write_bytes(UART_NUM_1, (const char *) data, sizeof(data));
 }
 
 
