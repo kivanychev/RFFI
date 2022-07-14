@@ -55,7 +55,8 @@ typedef enum {
 // LOCAL VARIABLES
 // ======================================================================
 
-
+static volatile uint16_t battery_state = 0;
+static volatile uint8_t fault_state = 0;
 
 // ======================================================================
 // FUNCTION DEFINITIONS
@@ -96,13 +97,17 @@ static void uart_task(void *arg)
 
     ESP_LOGD("UART", "Started");
 
+    // Data coing from Atmega
     uint8_t data[DATA_LEN_IN];
+
     uint8_t ind_pre;
     uint8_t ind_data;
 
     UART_state_t uart_state = UART_GET_PREAMBLE;
 
     uint8_t preamble[] = { 0xFF, 0xFF };      //Preamble for sent/received data over UART
+
+    // Data for sending
     uint8_t send_data[] = { 0xFF, 0xFF, PARAM_Iset, 0};
     uint8_t i_set = 0;
 
@@ -148,7 +153,9 @@ static void uart_task(void *arg)
                 }
             }
 
-            ESP_LOGI("UART", "%2X %2X, i_set = %d", data[0], data[1], i_set);  
+            ESP_LOGI("UART", "%2X %2X, i_set = %d", data[0], data[1], i_set);
+            battery_state = data[0] + (((uint16_t)(data[1]& 0x0f)) << 8);
+            fault_state = (data[1] & (1 << 7)) >> 7;
         }
 
 
@@ -201,10 +208,8 @@ void UART_start_task(void)
  * @param 
  * @return 
  */
-uint16_t UART_get_fault_state(void)
+uint8_t UART_get_fault_state(void)
 {
-    uint8_t fault_state = FALSE;
-
     return fault_state;
 }
 
@@ -231,8 +236,6 @@ void UART_clear_fault(void)
  */
 uint16_t UART_get_battery_state(void)
 {
-    uint16_t battery_state = 0;
-
     return battery_state;
 }
 

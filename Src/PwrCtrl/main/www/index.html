@@ -427,7 +427,7 @@
                             </div>
                         </div>
 
-                        <button id="update-data">Обновить данные</button>
+                        <button id="clear-fault">Сбросить ошибку Инвертора</button>
 
                         <hr style="width:100%">
                         
@@ -484,15 +484,15 @@ document.addEventListener('DOMContentLoaded', function (event) {
       });
   }
 
-  // ----------------------
-  // UPDATE BUTTON HANDLING
-  // ----------------------
+  // ---------------------------
+  // CLEAD FAULT BUTTON HANDLING
+  // ---------------------------
 
-  const updateDataButton = document.getElementById('update-data')
+  const updateDataButton = document.getElementById('clear-fault')
 
   updateDataButton.onclick = () => {
 
-    fetch(`${baseHost}/status`)
+    fetch(`${baseHost}/clear-fault`)
     .then(function (response) {
       return response.json();
     })

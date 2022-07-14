@@ -31,6 +31,8 @@
 
 #define TRUE    1
 #define FALSE   0
+#define BAT_OK      '+'
+#define BAT_FAILURE '-'
 
 // ===================================================================
 // LOCAL VARIABLES
@@ -43,6 +45,8 @@ volatile int http_response_active = FALSE;
 ParamDataFrame_t system_params;
 volatile uint8_t startInv = FALSE;
 volatile uint8_t startAB = FALSE;
+volatile uint8_t batteries[12] = {BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, 
+                                  BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK};
 
 // ===================================================================
 // LOCAL FUNCTIONS
@@ -117,6 +121,22 @@ static esp_err_t status_handler(httpd_req_t *req)
 {
     static char json_response[1024];
 
+    uint16_t bat_state = UART_get_battery_state();
+    uint8_t flt_state = UART_get_fault_state();
+
+    // Reading batteries state into string form
+    for(int ind_b = 0; ind_b < 12; ++ind_b)
+    {
+        if( (bat_state & (1 << ind_b)) == 0) 
+        {
+            batteries[ind_b] = BAT_OK;
+        }
+        else
+        {
+            batteries[ind_b] = BAT_FAILURE;
+        }
+    }
+
     char *p = json_response;
     *p++ = '{';
 
@@ -126,7 +146,10 @@ static esp_err_t status_handler(httpd_req_t *req)
     p += sprintf(p, "\"u_te\":%u.%u,", system_params.Ute/1000, system_params.Ute % 1000);
     p += sprintf(p, "\"u_ab\":%u.%u,", system_params.Uab/1000, system_params.Uab % 1000);
     p += sprintf(p, "\"i_ab\":%u.%u,", system_params.Iab/1000, system_params.Iab % 1000);   
-    p += sprintf(p, "\"batteries\":%s,", "\"1111 0101 1011\"");
+    p += sprintf(p, "\"batteries\":\"%c%c%c%c %c%c%c%c %c%c%c%c\",", batteries[0], batteries[1], batteries[2],
+                                                                     batteries[3], batteries[4], batteries[5],
+                                                                     batteries[6], batteries[7], batteries[8],
+                                                                     batteries[9], batteries[10], batteries[11]);
     p += sprintf(p, "\"start_inv\":%u,", startInv);
     p += sprintf(p, "\"start_ab\":%u", startAB);
 
@@ -144,6 +167,26 @@ static const httpd_uri_t status = {
     .handler   = status_handler,
     .user_ctx  = NULL
 };
+
+// -----------------------------------------------
+// CLEAR FAULT HANDLER
+// -----------------------------------------------
+
+static esp_err_t clear_fault_handler(httpd_req_t *req)
+{
+    UART_clear_fault();
+
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_send(req, NULL, 0);
+}
+
+static const httpd_uri_t clear_fault_uri = {
+    .uri       = "/clear-fault",
+    .method    = HTTP_GET,
+    .handler   = clear_fault_handler,
+    .user_ctx  = NULL
+};
+
 
 
 // -----------------------------------------------
@@ -329,6 +372,7 @@ static httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &sine_scale_uri);
         httpd_register_uri_handler(server, &pwm_uri);
         httpd_register_uri_handler(server, &cmd_uri);
+        httpd_register_uri_handler(server, &clear_fault_uri);
 
         return server;
     }
@@ -408,7 +452,7 @@ void app_main(void)
     UART_start_task();
     enc28j60_init();
 
-    // System initialization
+    // System state initialization
     startInv = FALSE;
     startAB = FALSE;
     UART_set_StartInv(startInv);

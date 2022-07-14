@@ -26,7 +26,7 @@ extern "C" {
 
 void UART_start_task(void);
 
-uint16_t UART_get_fault_state(void);
+uint8_t UART_get_fault_state(void);
 void UART_clear_fault(void);
 
 uint16_t UART_get_battery_state(void);
