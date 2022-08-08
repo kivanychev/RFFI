@@ -206,7 +206,8 @@ void UART_start_task(void)
  * @brief 
  * 
  * @param 
- * @return 
+ * @return  1 - driver OK
+ *          0 - Driver fault appeared
  */
 uint8_t UART_get_fault_state(void)
 {

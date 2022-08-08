@@ -150,6 +150,7 @@ static esp_err_t status_handler(httpd_req_t *req)
                                                                      batteries[3], batteries[4], batteries[5],
                                                                      batteries[6], batteries[7], batteries[8],
                                                                      batteries[9], batteries[10], batteries[11]);
+    p += sprintf(p, "\"invertor-state-text\":%s,", UART_get_fault_state() == 1 ? "\"Норма\"" : "\"Ошибка\"" );
     p += sprintf(p, "\"start_inv\":%u,", startInv);
     p += sprintf(p, "\"start_ab\":%u", startAB);
 
@@ -348,6 +349,24 @@ static const httpd_uri_t pwm_uri = {
     .user_ctx  = NULL
 };
 
+
+// -----------------------------------------------
+//
+// -----------------------------------------------
+
+/**
+ * @brief Starts Invertor in soft mode
+ * 
+ */
+void StartInvertor(void)
+{
+    for(float scale = MIN_SINE_AMPLITUDE; scale < (MAX_SINE_AMPLITUDE * 0.9); scale += 1.0)
+    {
+        Sine_set_amplitude(scale);
+        vTaskDelay(2);
+    }
+
+}
 
 // -----------------------------------------------
 // SERVER

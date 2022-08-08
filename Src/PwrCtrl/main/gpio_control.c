@@ -79,7 +79,7 @@ static void gpio_task_example(void* arg)
         if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) 
         {
 
-/*            
+/*
             if(io_num == SB2_GPIO)
             {
                 if(scale >= (MAX_SINE_AMPLITUDE - MIN_SINE_AMPLITUDE) )
