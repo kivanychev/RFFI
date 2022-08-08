@@ -492,26 +492,18 @@ document.addEventListener('DOMContentLoaded', function (event) {
   }
 
   // ---------------------------
-  // CLEAD FAULT BUTTON HANDLING
+  // CLEAR FAULT BUTTON HANDLING
   // ---------------------------
 
   const updateDataButton = document.getElementById('clear-fault')
 
   updateDataButton.onclick = () => {
 
-    fetch(`${baseHost}/clear-fault`)
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (state)
-    {
-      document.querySelectorAll('.default-action').forEach(el =>
-      {
-        console.log('el = ' + el.id);
-        updateValue(el, state[el.id], false);
-      })
-    })
-  
+    fetchUrl(`${baseHost}/clear-fault`, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
   }
 
 
@@ -629,6 +621,24 @@ document.addEventListener('DOMContentLoaded', function (event) {
     } 
     else 
     {
+      if(el.id == "invertor-state-text")
+      {
+        if(el.value == "Ошибка")
+        {
+          console.log("Ошибка");
+          btn = document.getElementById("clear-fault");
+          btn.disabled = true;
+          btn.classList.add('disabled');
+        }
+        else
+        {
+          console.log("Норма");
+          btn = document.getElementById("clear-fault");
+          btn.disabled = false;
+          btn.classList.remove('disabled');
+        }
+      }
+
       if(value != undefined)
       {
         el.value = value;
