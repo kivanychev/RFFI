@@ -621,28 +621,29 @@ document.addEventListener('DOMContentLoaded', function (event) {
     } 
     else 
     {
-      if(el.id == "invertor-state-text")
-      {
-        if(el.value == "Ошибка")
-        {
-          console.log("Ошибка");
-          btn = document.getElementById("clear-fault");
-          btn.disabled = true;
-          btn.classList.add('disabled');
-        }
-        else
-        {
-          console.log("Норма");
-          btn = document.getElementById("clear-fault");
-          btn.disabled = false;
-          btn.classList.remove('disabled');
-        }
-      }
-
       if(value != undefined)
       {
         el.value = value;
       }
+
+      if(el.id == "invertor-state-text")
+      {
+        if(value == "Ошибка")
+        {
+          console.log("Состояние Инвертора - Ошибка");
+          btn = document.getElementById("clear-fault");
+          btn.disabled = false;
+          btn.classList.remove('disabled');
+        }
+        else
+        {
+          console.log("Состояние Инвертора - Норма");
+          btn = document.getElementById("clear-fault");
+          btn.disabled = true;
+          btn.classList.add('disabled');
+        }
+      }
+
     }
   }
 
