@@ -13,7 +13,14 @@
 
 #include "enc28j60_task.h"
 
-static const char *TAG = "eth_example";
+static const char *TAG = "ethernet task";
+static char eth_ip[32];
+
+/** Returns pointer to Ethernet address string */
+char * ENC28J60_getEthernetIP()
+{
+    return &(eth_ip[0]);
+}
 
 /** Event handler for Ethernet events */
 static void eth_event_handler(void *arg, esp_event_base_t event_base,
@@ -50,6 +57,8 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
 {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
     const esp_netif_ip_info_t *ip_info = &event->ip_info;
+
+    sprintf(&(eth_ip[0]), "%d.%d.%d.%d", IP2STR(&ip_info->ip));
 
     ESP_LOGI(TAG, "Ethernet Got IP Address");
     ESP_LOGI(TAG, "~~~~~~~~~~~");

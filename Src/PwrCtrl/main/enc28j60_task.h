@@ -22,7 +22,7 @@ extern "C" {
 // ================================================
 
 void enc28j60_init(void);
-
+char * ENC28J60_getEthernetIP();
 
 #ifdef __cplusplus
 }

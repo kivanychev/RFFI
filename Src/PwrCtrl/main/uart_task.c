@@ -153,7 +153,7 @@ static void uart_task(void *arg)
                 }
             }
 
-            ESP_LOGI("UART", "%2X %2X, i_set = %d", data[0], data[1], i_set);
+            ESP_LOGD("UART", "%2X %2X, i_set = %d", data[0], data[1], i_set);
             battery_state = data[0] + (((uint16_t)(data[1]& 0x0f)) << 8);
             fault_state = (data[1] & (1 << 7)) >> 7;
         }

@@ -82,35 +82,6 @@ static esp_err_t parse_get(httpd_req_t *req, char **obuf)
 }
 
 
-/**
- * @brief 
- * 
- * @param buf 
- * @param str 
- * @return int 
- */
-static int println(char *buf, char * str)
-{
-    int len = sprintf(buf, str);
-
-    buf += len;
-    sprintf(buf, "\r\n");
-
-    return len + 2;
-}
-
-/**
- * @brief 
- * 
- * @param buf 
- * @param str 
- * @return int 
- */
-static int print(char *buf, char * str)
-{
-    return sprintf(buf, str);
-}
-
 // -----------------------------------------------
 // STATUS HANDLER
 // -----------------------------------------------
@@ -151,6 +122,7 @@ static esp_err_t status_handler(httpd_req_t *req)
                                                                      batteries[6], batteries[7], batteries[8],
                                                                      batteries[9], batteries[10], batteries[11]);
     p += sprintf(p, "\"invertor-state-text\":%s,", UART_get_fault_state() == 1 ? "\"Норма\"" : "\"Ошибка\"" );
+    p += sprintf(p, "\"eth-ip-text\":\"%s\",", ENC28J60_getEthernetIP());
     p += sprintf(p, "\"start_inv\":%u,", startInv);
     p += sprintf(p, "\"start_ab\":%u", startAB);
 
