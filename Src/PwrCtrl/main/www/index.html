@@ -411,6 +411,28 @@
                             </div>
                         </section>
 
+                        <div class="input-group" id="invertor-state">
+                          <label>Состояние Инвертора</label>
+                          <div class="text">
+                            <input id="invertor-state-text" type="text" minlength="1" maxlength="2" size="8" value="Норма" class="default-action">
+                          </div>
+                        </div>
+
+
+                      <hr style="width:100%">
+
+
+                      <label for="nav-toggle-ctrl" class="toggle-section-label">☰&nbsp;&nbsp;<b>Управление</b></label><input type="checkbox" id="nav-toggle-ctrl" class="hidden toggle-section-button" checked="checked">
+                      <section class="toggle-section">
+
+                        <div class="input-group" id="manual-mode-group">
+                          <label for="manual-mode">Ручное управление</label>
+                          <div class="switch">
+                              <input id="manual-mode" type="checkbox" class="default-action">
+                              <label class="slider" for="manual-mode"></label>
+                          </div>
+                        </div>
+
                         <div class="input-group" id="start_inv-group">
                               <label for="start_inv">Пуск инвертора</label>
                               <div class="switch">
@@ -427,45 +449,40 @@
                             </div>
                         </div>
 
-                        <div class="input-group" id="invertor-state">
-                          <label>Состояние Инвертора</label>
-                          <div class="text">
-                            <input id="invertor-state-text" type="text" minlength="1" maxlength="2" size="8" value="Норма" class="default-action">
-                          </div>
-                      </div>
-
                         <button id="clear-fault">Сбросить ошибку Инвертора</button>
 
-                        <hr style="width:100%">
-                        
-                        <label for="nav-toggle-win" class="toggle-section-label">☰&nbsp;&nbsp;<b>Дополнительно</b></label><input type="checkbox" id="nav-toggle-win" class="hidden toggle-section-button" checked="checked">
-                        <section class="toggle-section">
-                            
-                            <div class="input-group" id="set-pwm-group">
-                                <label for="set-pwm">ШИМ задания на ток(0-255)</label>
-                                <div class="text">
+                      </section>
+
+
+                      <hr style="width:100%">
+
+                      <label for="nav-toggle-win" class="toggle-section-label">☰&nbsp;&nbsp;<b>Дополнительно</b></label><input type="checkbox" id="nav-toggle-win" class="hidden toggle-section-button" checked="checked">
+                      <section class="toggle-section">
+                        <div class="input-group" id="set-pwm-group">
+                            <label for="set-pwm">ШИМ задания на ток(0-255)</label>
+                            <div class="text">
                                     <input id="pwm" type="text" minlength="1" maxlength="3" size="3" value="20">
-                                </div>
-                                <button class="inline-button" id="set-pwm">Set</button>
                             </div>
+                            <button class="inline-button" id="set-pwm">Set</button>
+                        </div>
 
 
-                            <div class="input-group" id="set-sine-scale-group">
-                              <label for="set-sine-scale">Масштаб синусоиды %</label>
-                              <div class="text">
+                        <div class="input-group" id="set-sine-scale-group">
+                            <label for="set-sine-scale">Масштаб синусоиды %</label>
+                            <div class="text">
                                   <input id="sine-scale" type="text" minlength="1" maxlength="3" size="3" value="80">
-                              </div>
-                              <button class="inline-button" id="set-sine-scale">Set</button>
                             </div>
+                            <button class="inline-button" id="set-sine-scale">Set</button>
+                        </div>
 
-                            <div class="input-group" id="eth-ip-group">
-                              <label for="eth-ip-text">Ethernet IP address:</label>
-                              <div class="text">
+                        <div class="input-group" id="eth-ip-group">
+                            <label for="eth-ip-text">Ethernet IP address:</label>
+                            <div class="text">
                                 <input id="eth-ip-text" type="text" minlength="1" maxlength="3" size="12" value="0.0.0.0" class="default-action">
-                              </div>
                             </div>
+                        </div>
+                      </section>
 
-                        </section>
 
                     </nav>
                 </div>
@@ -624,8 +641,11 @@ document.addEventListener('DOMContentLoaded', function (event) {
   {
     if (el.type === 'checkbox')
     {
-      value = !!value
-      el.checked = value
+      if(value != undefined)
+      {
+        value = !!value
+        el.checked = value
+      }
     } 
     else 
     {
