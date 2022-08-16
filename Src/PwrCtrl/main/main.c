@@ -39,10 +39,11 @@
 // ===================================================================
 
 static const char *TAG = "MAIN";
-int outputPinState = 1;
 volatile int http_response_active = FALSE;
 
 ParamDataFrame_t system_params;
+
+// 
 volatile uint8_t startInv = FALSE;
 volatile uint8_t startAB = FALSE;
 volatile uint8_t batteries[12] = {BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, 
@@ -378,17 +379,35 @@ static void stop_webserver(httpd_handle_t server)
     httpd_stop(server);
 }
 
+/**
+ * @brief WiFi disconnect event handler
+ * 
+ * @param arg 
+ * @param event_base 
+ * @param event_id 
+ * @param event_data 
+ */
 static void disconnect_handler(void* arg, esp_event_base_t event_base,
                                int32_t event_id, void* event_data)
 {
     httpd_handle_t* server = (httpd_handle_t*) arg;
     if (*server) {
-        ESP_LOGI(TAG, "Stopping webserver");
-        stop_webserver(*server);
-        *server = NULL;
+
+        // Fix for WiFi display disconnect
+        //ESP_LOGI(TAG, "Stopping webserver");
+        //stop_webserver(*server);
+        //*server = NULL;
     }
 }
 
+/**
+ * @brief WiFi Connect handler
+ * 
+ * @param arg 
+ * @param event_base 
+ * @param event_id 
+ * @param event_data 
+ */
 static void connect_handler(void* arg, esp_event_base_t event_base,
                             int32_t event_id, void* event_data)
 {
@@ -400,6 +419,11 @@ static void connect_handler(void* arg, esp_event_base_t event_base,
 }
 
 
+
+/**
+ * @brief Main 
+ * 
+ */
 void app_main(void)
 {
     // Server initialization
