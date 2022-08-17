@@ -560,6 +560,33 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
   }
 
+  // -----------
+  // MANUAL MODE
+  // -----------
+  const manualModeCheckBox = document.getElementById('manual-mode')
+
+  function setManualModeInv(level, cb)
+  {
+    console.log('Set ManualMode to ', level.toString(10) );
+    fetchUrl(`${baseHost}/cmd?manualMode=${level}`, cb);
+  }
+
+  manualModeCheckBox.onchange = () => {
+    let manualMode = 0;
+
+    if(manualModeCheckBox.checked == true)
+    {
+      manualMode = 1;
+    }
+
+    setManualModeInv(manualMode, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
+
+  }
+
 
   // ----------------
   // START AB CHARGER

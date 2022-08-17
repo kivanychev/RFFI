@@ -41,13 +41,17 @@
 static const char *TAG = "MAIN";
 volatile int http_response_active = FALSE;
 
-ParamDataFrame_t system_params;
+// System parameters
+ParamDataFrame_t st_params;
 
-// 
-volatile uint8_t startInv = FALSE;
-volatile uint8_t startAB = FALSE;
-volatile uint8_t batteries[12] = {BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, 
+// Battery sections states
+volatile uint8_t st_batteries[12] = {BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, 
                                   BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK};
+
+// Variables for controlling Inverter
+volatile uint8_t ctrl_startInv = FALSE;      // Starts/Stops Inverter. Assigned with webpage control
+volatile uint8_t ctrl_startAB = FALSE;       // Starts/Stops Charging device. Assigned with webpage control
+volatile uint8_t ctrl_manualMode = FALSE;    // TRUE - manual mode; FALSE - automatic mode
 
 // ===================================================================
 // LOCAL FUNCTIONS
@@ -94,38 +98,37 @@ static esp_err_t status_handler(httpd_req_t *req)
     static char json_response[1024];
 
     uint16_t bat_state = UART_get_battery_state();
-    uint8_t flt_state = UART_get_fault_state();
 
-    // Reading batteries state into string form
+    // Reading st_batteries state into string form
     for(int ind_b = 0; ind_b < 12; ++ind_b)
     {
         if( (bat_state & (1 << ind_b)) == 0) 
         {
-            batteries[ind_b] = BAT_OK;
+            st_batteries[ind_b] = BAT_OK;
         }
         else
         {
-            batteries[ind_b] = BAT_FAILURE;
+            st_batteries[ind_b] = BAT_FAILURE;
         }
     }
 
     char *p = json_response;
     *p++ = '{';
 
-    p += sprintf(p, "\"u_seti\":%u.%u,", system_params.Useti/1000, system_params.Useti % 1000);
-    p += sprintf(p, "\"u_inv\":%u.%u,", system_params.Uinv/1000, system_params.Uinv % 1000);
-    p += sprintf(p, "\"i_te\":%u.%u,", system_params.Ite/1000, system_params.Ite % 1000);
-    p += sprintf(p, "\"u_te\":%u.%u,", system_params.Ute/1000, system_params.Ute % 1000);
-    p += sprintf(p, "\"u_ab\":%u.%u,", system_params.Uab/1000, system_params.Uab % 1000);
-    p += sprintf(p, "\"i_ab\":%u.%u,", system_params.Iab/1000, system_params.Iab % 1000);   
-    p += sprintf(p, "\"batteries\":\"%c%c%c%c %c%c%c%c %c%c%c%c\",", batteries[0], batteries[1], batteries[2],
-                                                                     batteries[3], batteries[4], batteries[5],
-                                                                     batteries[6], batteries[7], batteries[8],
-                                                                     batteries[9], batteries[10], batteries[11]);
+    p += sprintf(p, "\"u_seti\":%u.%u,", st_params.Useti/1000, st_params.Useti % 1000);
+    p += sprintf(p, "\"u_inv\":%u.%u,", st_params.Uinv/1000, st_params.Uinv % 1000);
+    p += sprintf(p, "\"i_te\":%u.%u,", st_params.Ite/1000, st_params.Ite % 1000);
+    p += sprintf(p, "\"u_te\":%u.%u,", st_params.Ute/1000, st_params.Ute % 1000);
+    p += sprintf(p, "\"u_ab\":%u.%u,", st_params.Uab/1000, st_params.Uab % 1000);
+    p += sprintf(p, "\"i_ab\":%u.%u,", st_params.Iab/1000, st_params.Iab % 1000);   
+    p += sprintf(p, "\"batteries\":\"%c%c%c%c %c%c%c%c %c%c%c%c\",", st_batteries[0], st_batteries[1], st_batteries[2],
+                                                                     st_batteries[3], st_batteries[4], st_batteries[5],
+                                                                     st_batteries[6], st_batteries[7], st_batteries[8],
+                                                                     st_batteries[9], st_batteries[10], st_batteries[11]);
     p += sprintf(p, "\"invertor-state-text\":%s,", UART_get_fault_state() == 1 ? "\"Норма\"" : "\"Ошибка\"" );
     p += sprintf(p, "\"eth-ip-text\":\"%s\",", ENC28J60_getEthernetIP());
-    p += sprintf(p, "\"start_inv\":%u,", startInv);
-    p += sprintf(p, "\"start_ab\":%u", startAB);
+    p += sprintf(p, "\"start_inv\":%u,", ctrl_startInv);
+    p += sprintf(p, "\"start_ab\":%u", ctrl_startAB);
 
     *p++ = '}';
     *p++ = 0;
@@ -160,7 +163,6 @@ static const httpd_uri_t clear_fault_uri = {
     .handler   = clear_fault_handler,
     .user_ctx  = NULL
 };
-
 
 
 // -----------------------------------------------
@@ -252,16 +254,24 @@ static esp_err_t cmd_handler(httpd_req_t *req)
             int value = atoi(_value);
             ESP_LOGI(TAG, "Command StartInv: %d", value);
 
-            startInv = (uint8_t)(value);
-            UART_set_StartInv(startInv);
+            ctrl_startInv = (uint8_t)(value);
+            UART_set_StartInv(ctrl_startInv);
         } 
         else if( httpd_query_key_value(buf, "startAB", _value, sizeof(_value)) == ESP_OK ) 
         {
             int value = atoi(_value);
-            ESP_LOGI(TAG, "Command startAB: %d", value);
+            ESP_LOGI(TAG, "Command StartAB: %d", value);
 
-            startAB = (uint8_t)(value);
-            UART_set_StartAB(startAB);
+            ctrl_startAB = (uint8_t)(value);
+            UART_set_StartAB(ctrl_startAB);
+        }
+        else if( httpd_query_key_value(buf, "manualMode", _value, sizeof(_value)) == ESP_OK )
+        {
+            int value = atoi(_value);
+            ctrl_manualMode = (uint8_t)(value);
+
+            ESP_LOGI(TAG, "Command ManualMode: %d", ctrl_manualMode);
+
         }
     }
     else 
@@ -468,10 +478,11 @@ void app_main(void)
     enc28j60_init();
 
     // System state initialization
-    startInv = FALSE;
-    startAB = FALSE;
-    UART_set_StartInv(startInv);
-    UART_set_StartAB(startAB);
+    ctrl_startInv = FALSE;
+    ctrl_startAB = FALSE;
+    ctrl_manualMode = FALSE;
+    UART_set_StartInv(ctrl_startInv);
+    UART_set_StartAB(ctrl_startAB);
 
 
     // Sine Soft Start
@@ -486,8 +497,8 @@ void app_main(void)
     {
         if(http_response_active == FALSE)
         {
-            ADC_get_values(&system_params);
-            ESP_LOGD(TAG, "Uab = %d", system_params.Uab);
+            ADC_get_values(&st_params);
+            ESP_LOGD(TAG, "Uab = %d", st_params.Uab);
         }
 
         vTaskDelay(60);
