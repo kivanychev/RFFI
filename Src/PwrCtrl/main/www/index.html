@@ -485,6 +485,62 @@
                       </section>
 
 
+                      <hr style="width:100%">
+
+                      <label for="nav-toggle-coeff" class="toggle-section-label">☰&nbsp;&nbsp;<b>Коэффициенты</b></label><input type="checkbox" id="nav-toggle-coeff" class="hidden toggle-section-button" checked="checked">
+                      <section class="toggle-section">
+                        <div class="input-group" id="set-u-seti-coeff-group">
+                            <label for="set-u-seti-coeff">Напряжение сети</label>
+                            <div class="text">
+                                    <input id="u-seti-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                            </div>
+                            <button class="inline-button" id="set-u-seti-coeff">Set</button>
+                        </div>
+
+                        <div class="input-group" id="set-u-inv-coeff-group">
+                            <label for="set-u-inv-coeff">Напряжение Инвертора</label>
+                            <div class="text">
+                                  <input id="u-inv-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                            </div>
+                            <button class="inline-button" id="set-u-inv-coeff">Set</button>
+                        </div>
+
+                        <div class="input-group" id="set-u-te-coeff-group">
+                          <label for="set-u-te-coeff">Напр-е топливного элемента</label>
+                          <div class="text">
+                                <input id="u-te-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                          </div>
+                          <button class="inline-button" id="set-u-te-coeff">Set</button>
+                        </div>
+
+                        <div class="input-group" id="set-i-te-coeff-group">
+                          <label for="set-i-te-coeff">Ток топливного элемента</label>
+                          <div class="text">
+                              <input id="i-te-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                          </div>
+                          <button class="inline-button" id="set-i-te-coeff">Set</button>
+                        </div>
+
+                        <div class="input-group" id="set-i-ab-coeff-group">
+                          <label for="set-i-ab-coeff">Ток АБ</label>
+                          <div class="text">
+                              <input id="i-ab-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                          </div>
+                          <button class="inline-button" id="set-i-ab-coeff">Set</button>
+                        </div>
+
+                        <div class="input-group" id="set-u-ab-coeff-group">
+                          <label for="set-u-ab-coeff">Напряжение АБ</label>
+                          <div class="text">
+                              <input id="u-ab-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                          </div>
+                          <button class="inline-button" id="set-u-ab-coeff">Set</button>
+                        </div>
+
+
+                      </section>
+
+
                     </nav>
                 </div>
             </div>
@@ -659,6 +715,131 @@ document.addEventListener('DOMContentLoaded', function (event) {
     });
 
   }
+
+  // --------------------------
+  // COEFFICIENTS VALUE SETTING
+  // --------------------------
+
+  ////// U SETI COEFF /////////
+
+  const setUsetiCoeffButton = document.getElementById('set-u-seti-coeff')
+
+  function setUseti(u_seti_coeff, cb){
+    console.log('Set Useti coeff ', u_seti_coeff.toString(10) );
+    fetchUrl(`${baseHost}/set-coeff?u_seti_coeff=${u_seti_coeff}`, cb);
+  }
+
+  setUsetiCoeffButton.onclick = () => {
+    let u_seti_coeff = parseInt(document.getElementById('u-seti-coeff').value);
+
+    setUseti(u_seti_coeff, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
+  }
+
+  ////// U INV COEFF /////////
+
+  const setUinvCoeffButton = document.getElementById('set-u-inv-coeff')
+
+  function setUinv(u_inv_coeff, cb){
+    console.log('Set Uinv coeff ', u_inv_coeff.toString(10) );
+    fetchUrl(`${baseHost}/set-coeff?u_inv_coeff=${u_inv_coeff}`, cb);
+  }
+
+  setUinvCoeffButton.onclick = () => {
+    let u_inv_coeff = parseInt(document.getElementById('u-inv-coeff').value);
+
+    setUinv(u_inv_coeff, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
+  }
+
+
+  ////// U TE COEFF /////////
+
+  const setUteCoeffButton = document.getElementById('set-u-te-coeff')
+
+  function setUte(u_te_coeff, cb){
+    console.log('Set Ute coeff ', u_te_coeff.toString(10) );
+    fetchUrl(`${baseHost}/set-coeff?u_te_coeff=${u_te_coeff}`, cb);
+  }
+
+  setUteCoeffButton.onclick = () => {
+    let u_te_coeff = parseInt(document.getElementById('u-te-coeff').value);
+
+    setUte(u_te_coeff, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
+  }
+
+
+
+  ////// I TE COEFF /////////
+
+  const setIteCoeffButton = document.getElementById('set-i-te-coeff')
+
+  function setIte(i_te_coeff, cb){
+    console.log('Set Ite coeff ', i_te_coeff.toString(10) );
+    fetchUrl(`${baseHost}/set-coeff?i_te_coeff=${i_te_coeff}`, cb);
+  }
+
+  setIteCoeffButton.onclick = () => {
+    let i_te_coeff = parseInt(document.getElementById('i-te-coeff').value);
+
+    setIte(i_te_coeff, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
+  }
+
+
+  ////// I AB COEFF /////////
+
+  const setIabCoeffButton = document.getElementById('set-i-ab-coeff')
+
+  function setIab(i_ab_coeff, cb){
+    console.log('Set Iab coeff ', i_ab_coeff.toString(10) );
+    fetchUrl(`${baseHost}/set-coeff?i_ab_coeff=${i_ab_coeff}`, cb);
+  }
+
+  setIabCoeffButton.onclick = () => {
+    let i_ab_coeff = parseInt(document.getElementById('i-ab-coeff').value);
+
+    setIab(i_ab_coeff, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
+  }
+
+  ////// U AB COEFF /////////
+
+  const setUabCoeffButton = document.getElementById('set-u-ab-coeff')
+
+  function setUab(u_ab_coeff, cb){
+    console.log('Set Uab coeff ', u_ab_coeff.toString(10) );
+    fetchUrl(`${baseHost}/set-coeff?u_ab_coeff=${u_ab_coeff}`, cb);
+  }
+
+  setUabCoeffButton.onclick = () => {
+    let u_ab_coeff = parseInt(document.getElementById('u-ab-coeff').value);
+
+    setUab(u_ab_coeff, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
+  }
+
+
+
 
 
   // --------------------------------------------------

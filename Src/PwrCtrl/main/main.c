@@ -39,10 +39,14 @@
 // ===================================================================
 
 static const char *TAG = "MAIN";
+
+// Indicates that http response is received and will not mess parameters data
 volatile int http_response_active = FALSE;
 
 // System parameters
-ParamDataFrame_t st_params;
+ParamDataFrame_t params;
+ADC_coeff_t *param_coeff = NULL;
+
 
 // Battery sections states
 volatile uint8_t st_batteries[12] = {BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, 
@@ -115,12 +119,12 @@ static esp_err_t status_handler(httpd_req_t *req)
     char *p = json_response;
     *p++ = '{';
 
-    p += sprintf(p, "\"u_seti\":%u.%u,", st_params.Useti/1000, st_params.Useti % 1000);
-    p += sprintf(p, "\"u_inv\":%u.%u,", st_params.Uinv/1000, st_params.Uinv % 1000);
-    p += sprintf(p, "\"i_te\":%u.%u,", st_params.Ite/1000, st_params.Ite % 1000);
-    p += sprintf(p, "\"u_te\":%u.%u,", st_params.Ute/1000, st_params.Ute % 1000);
-    p += sprintf(p, "\"u_ab\":%u.%u,", st_params.Uab/1000, st_params.Uab % 1000);
-    p += sprintf(p, "\"i_ab\":%u.%u,", st_params.Iab/1000, st_params.Iab % 1000);   
+    p += sprintf(p, "\"u_seti\":%u.%u,", params.Useti/1000, params.Useti % 1000);
+    p += sprintf(p, "\"u_inv\":%u.%u,", params.Uinv/1000, params.Uinv % 1000);
+    p += sprintf(p, "\"i_te\":%u.%u,", params.Ite/1000, params.Ite % 1000);
+    p += sprintf(p, "\"u_te\":%u.%u,", params.Ute/1000, params.Ute % 1000);
+    p += sprintf(p, "\"u_ab\":%u.%u,", params.Uab/1000, params.Uab % 1000);
+    p += sprintf(p, "\"i_ab\":%u.%u,", params.Iab/1000, params.Iab % 1000);   
     p += sprintf(p, "\"batteries\":\"%c%c%c%c %c%c%c%c %c%c%c%c\",", st_batteries[0], st_batteries[1], st_batteries[2],
                                                                      st_batteries[3], st_batteries[4], st_batteries[5],
                                                                      st_batteries[6], st_batteries[7], st_batteries[8],
@@ -128,7 +132,9 @@ static esp_err_t status_handler(httpd_req_t *req)
     p += sprintf(p, "\"invertor-state-text\":%s,", UART_get_fault_state() == 1 ? "\"Норма\"" : "\"Ошибка\"" );
     p += sprintf(p, "\"eth-ip-text\":\"%s\",", ENC28J60_getEthernetIP());
     p += sprintf(p, "\"start_inv\":%u,", ctrl_startInv);
+    p += sprintf(p, "\"manual-mode\":%u,", ctrl_manualMode);
     p += sprintf(p, "\"start_ab\":%u", ctrl_startAB);
+
 
     *p++ = '}';
     *p++ = 0;
@@ -296,6 +302,89 @@ static const httpd_uri_t cmd_uri = {
 };
 
 
+// -----------------------------------------------
+// SET COEFF HANDLER
+// -----------------------------------------------
+
+
+static esp_err_t set_coeff_handler(httpd_req_t *req)
+{
+    char *buf = NULL;
+    char _value[32];
+
+    if (parse_get(req, &buf) == ESP_OK)
+    {
+        if( httpd_query_key_value(buf, "u_seti_coeff", _value, sizeof(_value)) == ESP_OK )
+        {
+            int value = atoi(_value);
+            ESP_LOGI(TAG, "u_seti_coeff: %d", value);
+
+            param_coeff->U_SETI = (uint16_t)(value);
+            ADC_update_coeff();
+        } 
+        else if( httpd_query_key_value(buf, "u_inv_coeff", _value, sizeof(_value)) == ESP_OK ) 
+        {
+            int value = atoi(_value);
+            ESP_LOGI(TAG, "u_inv_coeff: %d", value);
+
+            param_coeff->U_INV = (uint16_t)(value);
+            ADC_update_coeff();
+        }
+        else if( httpd_query_key_value(buf, "u_te_coeff", _value, sizeof(_value)) == ESP_OK )
+        {
+            int value = atoi(_value);
+            param_coeff->I_TE = (uint16_t)(value);
+
+            ESP_LOGI(TAG, "u_te_coeff: %d", ctrl_manualMode);
+            ADC_update_coeff();
+        }
+        else if( httpd_query_key_value(buf, "i_te_coeff", _value, sizeof(_value)) == ESP_OK )
+        {
+            int value = atoi(_value);
+            param_coeff->I_TE = (uint16_t)(value);
+
+            ESP_LOGI(TAG, "i_te_coeff: %d", ctrl_manualMode);
+            ADC_update_coeff();
+        }
+        else if( httpd_query_key_value(buf, "i_ab_coeff", _value, sizeof(_value)) == ESP_OK )
+        {
+            int value = atoi(_value);
+            param_coeff->I_AB = (uint16_t)(value);
+
+            ESP_LOGI(TAG, "i_ab_coeff: %d", ctrl_manualMode);
+            ADC_update_coeff();
+        }
+        else if( httpd_query_key_value(buf, "u_ab_coeff", _value, sizeof(_value)) == ESP_OK )
+        {
+            int value = atoi(_value);
+            param_coeff->U_AB = (uint16_t)(value);
+
+            ESP_LOGI(TAG, "u_ab_coeff: %d", ctrl_manualMode);
+            ADC_update_coeff();
+        }
+    }
+    else 
+    {
+        free(buf);
+        httpd_resp_send_404(req);
+        return ESP_FAIL;
+    }
+
+    free(buf);
+
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_send(req, NULL, 0);
+}
+
+
+static const httpd_uri_t set_coeff_uri = {
+    .uri       = "/set-coeff",
+    .method    = HTTP_GET,
+    .handler   = set_coeff_handler,
+    .user_ctx  = NULL
+};
+
+
 
 // -----------------------------------------------
 // SET PWM HANDLER
@@ -375,6 +464,7 @@ static httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &pwm_uri);
         httpd_register_uri_handler(server, &cmd_uri);
         httpd_register_uri_handler(server, &clear_fault_uri);
+        httpd_register_uri_handler(server, &set_coeff_uri);
 
         return server;
     }
@@ -473,7 +563,10 @@ void app_main(void)
     GPIO_init();
     pwm_init();
     Sine_start_task();
+
+    param_coeff = ADC_init_coeff();
     ADC_start_task();
+
     UART_start_task();
     enc28j60_init();
 
@@ -493,13 +586,15 @@ void app_main(void)
     }
 
 
+    // Automatic control
     while(1)
     {
         if(http_response_active == FALSE)
         {
-            ADC_get_values(&st_params);
-            ESP_LOGD(TAG, "Uab = %d", st_params.Uab);
+            ADC_get_values(&params);
+            ESP_LOGD(TAG, "Uab = %d", params.Uab);
         }
+
 
         vTaskDelay(60);
     }

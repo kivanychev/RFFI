@@ -12,13 +12,6 @@ extern "C" {
 // CONSTANT DEFINITIONS
 // ======================================================================
 
-// Coefficients for converting voltage value to physical values
-#define K_U_SETI     210
-#define K_U_INV      1
-#define K_I_AB       1
-#define K_I_TE       1
-#define K_U_AB       10
-#define K_U_TE       1
 
 // ======================================================================
 //  TYPE DEFINITIONS
@@ -43,7 +36,7 @@ typedef struct {
 
 } ParamValue_t;
 
-// Frame of measured parameters
+// Frame of measured parameters in millli Volts
 typedef struct {
     uint32_t Useti;     // mV
     uint32_t Uinv;      // mV
@@ -62,13 +55,28 @@ typedef enum {
 
 } ADC_status_t;
 
+
+// Coefficients for converting voltage value to physical values
+typedef struct {
+    uint16_t U_SETI;
+    uint16_t U_INV;
+    uint16_t I_AB;
+    uint16_t I_TE;
+    uint16_t U_AB;
+    uint16_t U_TE;
+    uint16_t divider;
+
+} ADC_coeff_t;
+
 // ======================================================================
 // FUNCTION PROTOTYPES
 // ======================================================================
 
+ADC_coeff_t *ADC_init_coeff();
+void ADC_update_coeff();
+
 void ADC_start_task(void);
 ADC_status_t ADC_get_values(ParamDataFrame_t *requested_adc_data);
-
 
 
 #ifdef __cplusplus

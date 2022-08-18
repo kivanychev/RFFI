@@ -7,6 +7,9 @@
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
 
+#include "nvs_flash.h"
+#include "nvs.h"
+
 #include <esp_log.h>
 
 #include "adc_task.h"
@@ -37,6 +40,14 @@
 // ======================================================================
 // LOCAL VARIABLES
 // ======================================================================
+
+ADC_coeff_t coeff = {   .I_AB =1, 
+                        .I_TE = 1,
+                        .U_AB = 1,
+                        .U_INV = 1,
+                        .U_SETI = 1,
+                        .U_TE = 1};
+
 
 ParamDataFrame_t param_data_frame;
 
@@ -191,12 +202,12 @@ void adc_task(void *args)
         // Checking if some one wants to get measured data
         if( ThereIsDataFrameRequest() )
         {
-            param_data_frame.Uab = params[ADC_CH_U_AB].voltage * K_U_AB;
-            param_data_frame.Uinv = params[ADC_CH_U_INV].voltage * K_U_INV;
-            param_data_frame.Iab = params[ADC_CH_I_AB].voltage * K_I_AB;
-            param_data_frame.Ite = params[ADC_CH_I_TE].voltage * K_I_TE;
-            param_data_frame.Useti = params[ADC_CH_U_SETI].voltage * K_U_SETI;
-            param_data_frame.Ute = params[ADC_CH_U_TE].voltage * K_U_TE;
+            param_data_frame.Uab = params[ADC_CH_U_AB].voltage * coeff.U_AB;
+            param_data_frame.Uinv = params[ADC_CH_U_INV].voltage * coeff.U_INV;
+            param_data_frame.Iab = params[ADC_CH_I_AB].voltage * coeff.I_AB;
+            param_data_frame.Ite = params[ADC_CH_I_TE].voltage * coeff.I_TE;
+            param_data_frame.Useti = params[ADC_CH_U_SETI].voltage * coeff.U_SETI;
+            param_data_frame.Ute = params[ADC_CH_U_TE].voltage * coeff.U_TE;
 
             // Reset flag
             DataFrameRequestComplete();
@@ -229,6 +240,191 @@ void adc_task(void *args)
 // ======================================================================
 // EXTERNAL FUNCTION DEFINITIONS
 // ======================================================================
+
+ADC_coeff_t *ADC_init_coeff()
+{
+    // Read coefficients from NVS
+
+    // Initialize NVS
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) 
+    {
+        // NVS partition was truncated and needs to be erased
+        // Retry nvs_flash_init
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+
+    ESP_ERROR_CHECK( err );
+
+    // Open NVS
+    ESP_LOGI(TAG, "Error status:%d\n", err);
+    ESP_LOGI(TAG, "Opening Non-Volatile Storage (NVS) handle... ");
+
+    nvs_handle_t nvs_handle;
+    err = nvs_open("storage", NVS_READWRITE, &nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGD(TAG, "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+    } 
+    else {
+        if( nvs_get_u16(nvs_handle, "coeff.U_SETI", &coeff.U_SETI) != ESP_OK) {
+            ESP_LOGI(TAG, "coeff.U_SETI not yet found");
+        }
+        else {
+            ESP_LOGI(TAG, "coeff.U_SETI: read value = %d", coeff.U_SETI);
+        }
+
+
+        if( nvs_get_u16(nvs_handle, "coeff.U_INV", &coeff.U_INV) != ESP_OK) {
+            ESP_LOGI(TAG, "coeff.U_INV not yet found");
+        }
+        else {
+            ESP_LOGI(TAG, "coeff.U_INV: read value = %d", coeff.U_INV);
+        }
+
+
+        if( nvs_get_u16(nvs_handle, "coeff.I_AB", &coeff.I_AB) != ESP_OK) {
+            ESP_LOGI(TAG, "coeff.I_AB not yet found");
+        }
+        else {
+            ESP_LOGI(TAG, "coeff.I_AB: read value = %d", coeff.I_AB);
+        }
+
+
+        if( nvs_get_u16(nvs_handle, "coeff.I_TE", &coeff.I_TE) != ESP_OK) {
+            ESP_LOGI(TAG, "coeff.I_TE not yet found");
+        }
+        else {
+            ESP_LOGI(TAG, "coeff.I_TE: read value = %d", coeff.I_TE);
+        }
+
+
+        if( nvs_get_u16(nvs_handle, "coeff.U_AB", &coeff.U_AB) != ESP_OK) {
+            ESP_LOGI(TAG, "coeff.U_AB not yet found");
+        }
+        else {
+            ESP_LOGI(TAG, "coeff.U_AB: read value = %d", coeff.U_AB);
+        }
+
+
+        if( nvs_get_u16(nvs_handle, "coeff.U_TE", &coeff.U_TE) != ESP_OK) {
+            ESP_LOGI(TAG, "coeff.U_TE not yet found");
+        }
+        else {
+            ESP_LOGI(TAG, "coeff.U_TE: read value = %d", coeff.U_TE);
+        }
+
+
+        if( nvs_get_u16(nvs_handle, "coeff.divider", &coeff.divider) != ESP_OK) {
+            ESP_LOGI(TAG, "coeff.U_TE not yet found");
+        }
+        else {
+            ESP_LOGI(TAG, "coeff.divider: read value = %d", coeff.divider);
+        }
+
+        nvs_close(nvs_handle);
+    }
+
+    return &coeff;
+}
+
+/**
+ * @brief Writes new coefficients data to NVS
+ * 
+ */
+void ADC_update_coeff()
+{
+    // Initialize NVS
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        // NVS partition was truncated and needs to be erased
+        // Retry nvs_flash_init
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+
+    ESP_ERROR_CHECK( err );
+
+    nvs_handle_t nvs_handle;
+    err = nvs_open("storage", NVS_READWRITE, &nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGD(TAG, "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+    } 
+    else 
+    {
+        err = nvs_set_u16(nvs_handle, "coeff.U_SETI", coeff.U_SETI);
+        if(err != ESP_OK) {
+            ESP_LOGD(TAG, "U_SETI Write Failed!");
+        }
+        else {
+            ESP_LOGD(TAG, "U_SETI Write Successful!");
+        }
+
+        err = nvs_set_u16(nvs_handle, "coeff.U_INV", coeff.U_INV);
+        if(err != ESP_OK) {
+            ESP_LOGD(TAG, "U_INV Write Failed!");
+        }
+        else {
+            ESP_LOGD(TAG, "U_INV Write Successful!");
+        }
+
+        err = nvs_set_u16(nvs_handle, "coeff.I_AB", coeff.I_AB);
+        if(err != ESP_OK) {
+            ESP_LOGD(TAG, "I_AB Write Failed!");
+        }
+        else {
+            ESP_LOGD(TAG, "I_AB Write Successful!");
+        }
+
+        err = nvs_set_u16(nvs_handle, "coeff.I_TE", coeff.I_TE);
+        if(err != ESP_OK) {
+            ESP_LOGD(TAG, "I_TE Write Failed!");
+        }
+        else {
+            ESP_LOGD(TAG, "I_TE Write Successful!");
+        }
+
+        err = nvs_set_u16(nvs_handle, "coeff.U_AB", coeff.U_AB);
+        if(err != ESP_OK) {
+            ESP_LOGD(TAG, "U_AB Write Failed!");
+        }
+        else {
+            ESP_LOGD(TAG, "U_AB Write Successful!");
+        }
+
+        err = nvs_set_u16(nvs_handle, "coeff.U_TE", coeff.U_TE);
+        if(err != ESP_OK) {
+            ESP_LOGD(TAG, "U_TE Write Failed!");
+        }
+        else {
+            ESP_LOGD(TAG, "U_TE Write Successful!");
+        }
+
+        err = nvs_set_u16(nvs_handle, "coeff.divider", coeff.divider);
+        if(err != ESP_OK) {
+            ESP_LOGD(TAG, "divider Write Failed!");
+        }
+        else {
+            ESP_LOGD(TAG, "divider Write Successful!");
+        }
+
+
+        err = nvs_commit(nvs_handle);
+        if(err != ESP_OK)
+        {
+            ESP_LOGD(TAG, "Commit Failed!");
+        }
+        else
+        {
+            ESP_LOGD(TAG, "Commit Successful!");
+        }
+
+        // Close
+        nvs_close(nvs_handle);
+    }
+
+}
 
 /**
  * @brief Starts ADC task on Core 0
