@@ -131,8 +131,17 @@ static esp_err_t status_handler(httpd_req_t *req)
                                                                      st_batteries[9], st_batteries[10], st_batteries[11]);
     p += sprintf(p, "\"invertor-state-text\":%s,", UART_get_fault_state() == 1 ? "\"Норма\"" : "\"Ошибка\"" );
     p += sprintf(p, "\"eth-ip-text\":\"%s\",", ENC28J60_getEthernetIP());
+
+    p += sprintf(p, "\"u-ab-coeff\":%u,", param_coeff->U_AB);
+    p += sprintf(p, "\"u-inv-coeff\":%u,", param_coeff->U_INV);
+    p += sprintf(p, "\"i-ab-coeff\":%u,", param_coeff->I_AB);
+    p += sprintf(p, "\"i-te-coeff\":%u,", param_coeff->I_TE);
+    p += sprintf(p, "\"u-seti-coeff\":%u,", param_coeff->U_SETI);
+    p += sprintf(p, "\"u-te-coeff\":%u,", param_coeff->U_TE);
+
     p += sprintf(p, "\"start_inv\":%u,", ctrl_startInv);
     p += sprintf(p, "\"manual-mode\":%u,", ctrl_manualMode);
+
     p += sprintf(p, "\"start_ab\":%u", ctrl_startAB);
 
 
@@ -303,6 +312,41 @@ static const httpd_uri_t cmd_uri = {
 
 
 // -----------------------------------------------
+// GET COEFFICIENTS HANDLER
+// -----------------------------------------------
+
+/* get_coeffs handler */
+static esp_err_t get_coeffs_handler(httpd_req_t *req)
+{
+    static char json_response[1024];
+
+    char *p = json_response;
+    *p++ = '{';
+
+    p += sprintf(p, "\"u-ab-coeff\":%u,", param_coeff->U_AB);
+    p += sprintf(p, "\"u-inv-coeff\":%u,", param_coeff->U_INV);
+    p += sprintf(p, "\"i-ab-coeff\":%u,", param_coeff->I_AB);
+    p += sprintf(p, "\"i-te-coeff\":%u,", param_coeff->I_TE);
+    p += sprintf(p, "\"u-seti-coeff\":%u,", param_coeff->U_SETI);
+    p += sprintf(p, "\"u-te-coeff\":%u", param_coeff->U_TE);
+
+    *p++ = '}';
+    *p++ = 0;
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_send(req, json_response, strlen(json_response));
+}
+
+
+static const httpd_uri_t get_coeffs_uri = {
+    .uri       = "/get-coeffs",
+    .method    = HTTP_GET,
+    .handler   = get_coeffs_handler,
+    .user_ctx  = NULL
+};
+
+
+// -----------------------------------------------
 // SET COEFF HANDLER
 // -----------------------------------------------
 
@@ -333,9 +377,9 @@ static esp_err_t set_coeff_handler(httpd_req_t *req)
         else if( httpd_query_key_value(buf, "u_te_coeff", _value, sizeof(_value)) == ESP_OK )
         {
             int value = atoi(_value);
-            param_coeff->I_TE = (uint16_t)(value);
+            param_coeff->U_TE = (uint16_t)(value);
 
-            ESP_LOGI(TAG, "u_te_coeff: %d", ctrl_manualMode);
+            ESP_LOGI(TAG, "u_te_coeff: %d", value);
             ADC_update_coeff();
         }
         else if( httpd_query_key_value(buf, "i_te_coeff", _value, sizeof(_value)) == ESP_OK )
@@ -343,7 +387,7 @@ static esp_err_t set_coeff_handler(httpd_req_t *req)
             int value = atoi(_value);
             param_coeff->I_TE = (uint16_t)(value);
 
-            ESP_LOGI(TAG, "i_te_coeff: %d", ctrl_manualMode);
+            ESP_LOGI(TAG, "i_te_coeff: %d", value);
             ADC_update_coeff();
         }
         else if( httpd_query_key_value(buf, "i_ab_coeff", _value, sizeof(_value)) == ESP_OK )
@@ -351,7 +395,7 @@ static esp_err_t set_coeff_handler(httpd_req_t *req)
             int value = atoi(_value);
             param_coeff->I_AB = (uint16_t)(value);
 
-            ESP_LOGI(TAG, "i_ab_coeff: %d", ctrl_manualMode);
+            ESP_LOGI(TAG, "i_ab_coeff: %d", value);
             ADC_update_coeff();
         }
         else if( httpd_query_key_value(buf, "u_ab_coeff", _value, sizeof(_value)) == ESP_OK )
@@ -359,7 +403,7 @@ static esp_err_t set_coeff_handler(httpd_req_t *req)
             int value = atoi(_value);
             param_coeff->U_AB = (uint16_t)(value);
 
-            ESP_LOGI(TAG, "u_ab_coeff: %d", ctrl_manualMode);
+            ESP_LOGI(TAG, "u_ab_coeff: %d", value);
             ADC_update_coeff();
         }
     }
@@ -465,6 +509,7 @@ static httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &cmd_uri);
         httpd_register_uri_handler(server, &clear_fault_uri);
         httpd_register_uri_handler(server, &set_coeff_uri);
+        httpd_register_uri_handler(server, &get_coeffs_uri);
 
         return server;
     }

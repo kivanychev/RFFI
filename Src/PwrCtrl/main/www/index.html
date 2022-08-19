@@ -492,7 +492,7 @@
                         <div class="input-group" id="set-u-seti-coeff-group">
                             <label for="set-u-seti-coeff">Напряжение сети</label>
                             <div class="text">
-                                    <input id="u-seti-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                                  <input id="u-seti-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
                             </div>
                             <button class="inline-button" id="set-u-seti-coeff">Set</button>
                         </div>
@@ -500,7 +500,7 @@
                         <div class="input-group" id="set-u-inv-coeff-group">
                             <label for="set-u-inv-coeff">Напряжение Инвертора</label>
                             <div class="text">
-                                  <input id="u-inv-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                                  <input id="u-inv-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
                             </div>
                             <button class="inline-button" id="set-u-inv-coeff">Set</button>
                         </div>
@@ -508,7 +508,7 @@
                         <div class="input-group" id="set-u-te-coeff-group">
                           <label for="set-u-te-coeff">Напр-е топливного элемента</label>
                           <div class="text">
-                                <input id="u-te-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                                <input id="u-te-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
                           </div>
                           <button class="inline-button" id="set-u-te-coeff">Set</button>
                         </div>
@@ -516,7 +516,7 @@
                         <div class="input-group" id="set-i-te-coeff-group">
                           <label for="set-i-te-coeff">Ток топливного элемента</label>
                           <div class="text">
-                              <input id="i-te-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                              <input id="i-te-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
                           </div>
                           <button class="inline-button" id="set-i-te-coeff">Set</button>
                         </div>
@@ -524,7 +524,7 @@
                         <div class="input-group" id="set-i-ab-coeff-group">
                           <label for="set-i-ab-coeff">Ток АБ</label>
                           <div class="text">
-                              <input id="i-ab-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                              <input id="i-ab-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
                           </div>
                           <button class="inline-button" id="set-i-ab-coeff">Set</button>
                         </div>
@@ -532,14 +532,12 @@
                         <div class="input-group" id="set-u-ab-coeff-group">
                           <label for="set-u-ab-coeff">Напряжение АБ</label>
                           <div class="text">
-                              <input id="u-ab-coeff" type="text" minlength="1" maxlength="3" size="3" value="1">
+                              <input id="u-ab-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
                           </div>
                           <button class="inline-button" id="set-u-ab-coeff">Set</button>
                         </div>
 
-
                       </section>
-
 
                     </nav>
                 </div>
@@ -846,15 +844,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
   // READ VALUES FROM SERVER AND PUT THEM INTO WEB-PAGE
   // --------------------------------------------------
 
-  const updateValue = (el, value, updateRemote) => 
+  const updateValue = (el, value) => 
   {
     if (el.type === 'checkbox')
     {
-      if(value != undefined)
-      {
         value = !!value
         el.checked = value
-      }
     } 
     else 
     {
@@ -884,6 +879,24 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
   }
 
+
+  // -------------------------------------------
+  // READ COEFFICIENT VALUES AT PAGE LOAD
+  // -------------------------------------------
+
+  fetch(`${baseHost}/get-coeffs`)
+        .then(function (response) {
+          return response.json();
+        })
+        .then(function (state)
+        {
+          document.querySelectorAll('.default-coeff').forEach(el =>
+          {
+            console.log('coeff = ' + el.id);
+            updateValue(el, state[el.id]);
+          })
+        });
+
   // -------------------------------------------
   // MAKE PAGE DATA TOBE UPDATED EVERY 3 SECONDS
   // -------------------------------------------
@@ -899,7 +912,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
           document.querySelectorAll('.default-action').forEach(el =>
           {
             console.log('el = ' + el.id);
-            updateValue(el, state[el.id], false);
+            updateValue(el, state[el.id]);
           })
         })
     }, 3000);
