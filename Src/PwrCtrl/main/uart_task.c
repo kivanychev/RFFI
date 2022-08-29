@@ -105,10 +105,10 @@ static void uart_task(void *arg)
 
     UART_state_t uart_state = UART_GET_PREAMBLE;
 
-    uint8_t preamble[] = { 0xFF, 0xFF };      //Preamble for sent/received data over UART
+    uint8_t preamble[] = { UART_PRE0, UART_PRE1 };      //Preamble for sent/received data over UART
 
     // Data for sending
-    uint8_t send_data[] = { 0xFF, 0xFF, PARAM_Iset, 0};
+    uint8_t send_data[] = { UART_PRE0, UART_PRE1, PARAM_Iset, 0};
     uint8_t i_set = 0;
 
 
@@ -223,7 +223,7 @@ uint8_t UART_get_fault_state(void)
  */
 void UART_clear_fault(void)
 {
-    static uint8_t data[] = { 0xFF, 0xFF, PARAM_ClearFault, 0};
+    static uint8_t data[] = { UART_PRE0, UART_PRE1, PARAM_ClearFault, 0};
 
     uart_write_bytes(UART_NUM_1, (const char *) data, sizeof(data));
 }
@@ -249,7 +249,7 @@ uint16_t UART_get_battery_state(void)
  */
 void UART_set_Iset_level(uint8_t level)
 {
-    static uint8_t data[] = { 0xFF, 0xFF, PARAM_Iset, 0};
+    static uint8_t data[] = { UART_PRE0, UART_PRE1, PARAM_Iset, 0};
 
     data[3] = level;
     uart_write_bytes(UART_NUM_1, (const char *) data, sizeof(data));
@@ -264,7 +264,7 @@ void UART_set_Iset_level(uint8_t level)
  */
 void UART_set_StartAB(uint8_t level)
 {
-    static uint8_t data[] = { 0xFF, 0xFF, PARAM_StartAB_ON, 0};
+    static uint8_t data[] = { UART_PRE0, UART_PRE1, PARAM_StartAB_ON, 0};
     
     if(level == ON)
     {
@@ -284,7 +284,7 @@ void UART_set_StartAB(uint8_t level)
  */
 void UART_set_StartInv(uint8_t level)
 {
-    static uint8_t data[] = { 0xFF, 0xFF, PARAM_StartInv_ON, 0};
+    static uint8_t data[] = { UART_PRE0, UART_PRE1, PARAM_StartInv_ON, 0};
 
     if(level == ON)
     {

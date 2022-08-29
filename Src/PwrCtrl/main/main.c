@@ -476,6 +476,10 @@ static const httpd_uri_t pwm_uri = {
  */
 void StartInvertor(void)
 {
+    // Sends StartInv command to Atmega MCU
+
+
+
     for(float scale = MIN_SINE_AMPLITUDE; scale < (MAX_SINE_AMPLITUDE * 0.9); scale += 1.0)
     {
         Sine_set_amplitude(scale);

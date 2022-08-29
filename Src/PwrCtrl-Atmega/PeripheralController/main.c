@@ -59,6 +59,11 @@
 #define START                   1
 #define STOP                    0
 
+// Symbols pf the preamble
+#define UART_PRE0   'P'
+#define UART_PRE1   'R'
+#define UART_PRE2   'E'
+
 //---------------------------------------------------------------------------------------
 //      MACROS
 //---------------------------------------------------------------------------------------
@@ -101,7 +106,7 @@ typedef enum {
 //---------------------------------------------------------------------------------------
 
 //Preamble for sent/received data over UART
-unsigned char preamble[] = { 0xFF, 0xFF };
+unsigned char preamble[] = { UART_PRE0, UART_PRE1 };
 unsigned char data_buffer_in[DATA_LEN_IN];
 unsigned char data_buffer_out[DATA_LEN_OUT];
 

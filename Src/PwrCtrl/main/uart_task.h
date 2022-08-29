@@ -10,6 +10,11 @@
 #define ON      1
 #define OFF     0 
 
+// Symbols pf the preamble
+#define UART_PRE0   'P'
+#define UART_PRE1   'R'
+#define UART_PRE2   'E'
+
 // ======================================================================
 // TYPES
 // ======================================================================
