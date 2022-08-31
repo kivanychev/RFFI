@@ -365,7 +365,7 @@
                       
                         <section id="u_te-section" class="nothidden">
                           <div class="input-group" id="set-u_te-group">
-                            <label for="set-u_te">Напр-е топливного элемента</label>
+                            <label for="set-u_te">Напр-е топливного эл-та</label>
                             <div class="text">
                                 <input id="u_te" type="text" minlength="1" maxlength="2" size="2" value="0" class="default-action">
                             </div>
@@ -450,6 +450,22 @@
                             </div>
                         </div>
 
+                        <div class="input-group" id="set-pwm-group">
+                          <label for="set-pwm">ШИМ задания на ток(0-255)</label>
+                          <div class="text">
+                                  <input id="pwm" type="text" minlength="1" maxlength="3" size="3" value="20">
+                          </div>
+                          <button class="inline-button" id="set-pwm">Set</button>
+                        </div>
+
+                        <div class="input-group" id="set-sine-scale-group">
+                          <label for="set-sine-scale">Масштаб синусоиды %</label>
+                          <div class="text">
+                                <input id="sine-scale" type="text" minlength="1" maxlength="3" size="3" value="80">
+                          </div>
+                          <button class="inline-button" id="set-sine-scale">Set</button>
+                        </div>
+
                         <button id="clear-fault" style="width:100%">Сбросить ошибку Инвертора</button>
 
                       </section>
@@ -459,22 +475,6 @@
 
                       <label for="nav-toggle-win" class="toggle-section-label">☰&nbsp;&nbsp;<b>Дополнительно</b></label><input type="checkbox" id="nav-toggle-win" class="hidden toggle-section-button" checked="checked">
                       <section class="toggle-section">
-                        <div class="input-group" id="set-pwm-group">
-                            <label for="set-pwm">ШИМ задания на ток(0-255)</label>
-                            <div class="text">
-                                    <input id="pwm" type="text" minlength="1" maxlength="3" size="3" value="20">
-                            </div>
-                            <button class="inline-button" id="set-pwm">Set</button>
-                        </div>
-
-
-                        <div class="input-group" id="set-sine-scale-group">
-                            <label for="set-sine-scale">Масштаб синусоиды %</label>
-                            <div class="text">
-                                  <input id="sine-scale" type="text" minlength="1" maxlength="3" size="3" value="80">
-                            </div>
-                            <button class="inline-button" id="set-sine-scale">Set</button>
-                        </div>
 
                         <div class="input-group" id="eth-ip-group">
                             <label for="eth-ip-text">Ethernet IP address:</label>
@@ -482,8 +482,8 @@
                                 <input id="eth-ip-text" type="text" minlength="1" maxlength="3" size="12" value="0.0.0.0" class="default-action">
                             </div>
                         </div>
-                      </section>
 
+                      </section>
 
                       <hr style="width:100%">
 
@@ -506,7 +506,7 @@
                         </div>
 
                         <div class="input-group" id="set-u-te-coeff-group">
-                          <label for="set-u-te-coeff">Напр-е топливного элемента</label>
+                          <label for="set-u-te-coeff">Напр-е топливного эл-та</label>
                           <div class="text">
                                 <input id="u-te-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
                           </div>
@@ -617,12 +617,54 @@ document.addEventListener('DOMContentLoaded', function (event) {
   // -----------
   // MANUAL MODE
   // -----------
+
+  // Enables/disables
+  function setMmanualModeControlsVisibility(level)
+  {
+    if(level == 1)
+    {
+      // Enable elements for Invertor control
+      console.log('Enable Manual control elements ');
+      startInvCheckBox.disabled = false;
+      startInvCheckBox.classList.remove('disabled');
+
+      startAbCheckBox.disabled = false;
+      startAbCheckBox.classList.remove('disabled');
+
+      setPwmButton.disabled = false;
+      setPwmButton.classList.remove('disabled');
+
+      setSineScaleButton.disabled = false;
+      setSineScaleButton.classList.remove('disabled');
+
+    }
+    else
+    {
+      // Disable elements for Invertor control
+      console.log('Disable Manual control elements ');
+
+      startInvCheckBox.disabled = true;
+      startInvCheckBox.classList.add('disabled');
+
+      startAbCheckBox.disabled = true;
+      startAbCheckBox.classList.add('disabled');
+
+      setPwmButton.disabled = true;
+      setPwmButton.classList.add('disabled');
+
+      setSineScaleButton.disabled = true;
+      setSineScaleButton.classList.add('disabled');
+    }
+  }
+
   const manualModeCheckBox = document.getElementById('manual-mode')
 
   function setManualModeInv(level, cb)
   {
-    console.log('Set ManualMode to ', level.toString(10) );
+    console.log('!!Set ManualMode to ', level.toString(10) );
     fetchUrl(`${baseHost}/cmd?manualMode=${level}`, cb);
+
+    setMmanualModeControlsVisibility(level);
   }
 
   manualModeCheckBox.onchange = () => {
@@ -756,7 +798,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
     });
   }
 
-
   ////// U TE COEFF /////////
 
   const setUteCoeffButton = document.getElementById('set-u-te-coeff')
@@ -776,8 +817,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
     });
   }
 
-
-
   ////// I TE COEFF /////////
 
   const setIteCoeffButton = document.getElementById('set-i-te-coeff')
@@ -796,7 +835,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
       }
     });
   }
-
 
   ////// I AB COEFF /////////
 
@@ -838,8 +876,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
 
 
-
-
   // --------------------------------------------------
   // READ VALUES FROM SERVER AND PUT THEM INTO WEB-PAGE
   // --------------------------------------------------
@@ -848,8 +884,15 @@ document.addEventListener('DOMContentLoaded', function (event) {
   {
     if (el.type === 'checkbox')
     {
-        value = !!value
-        el.checked = value
+      value = !!value
+      el.checked = value
+
+      // Set Invertor controls depending on the Manual Mode checkbox value
+      if(el.id == "manual-mode")
+      {
+        setMmanualModeControlsVisibility(value);
+      }
+
     } 
     else 
     {
@@ -917,10 +960,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
         })
     }, 3000);
 
-
 })
 
         </script>
-    
 
 </body></html>

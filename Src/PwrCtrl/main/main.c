@@ -132,18 +132,10 @@ static esp_err_t status_handler(httpd_req_t *req)
     p += sprintf(p, "\"invertor-state-text\":%s,", UART_get_fault_state() == 1 ? "\"Норма\"" : "\"Ошибка\"" );
     p += sprintf(p, "\"eth-ip-text\":\"%s\",", ENC28J60_getEthernetIP());
 
-    p += sprintf(p, "\"u-ab-coeff\":%u,", param_coeff->U_AB);
-    p += sprintf(p, "\"u-inv-coeff\":%u,", param_coeff->U_INV);
-    p += sprintf(p, "\"i-ab-coeff\":%u,", param_coeff->I_AB);
-    p += sprintf(p, "\"i-te-coeff\":%u,", param_coeff->I_TE);
-    p += sprintf(p, "\"u-seti-coeff\":%u,", param_coeff->U_SETI);
-    p += sprintf(p, "\"u-te-coeff\":%u,", param_coeff->U_TE);
-
     p += sprintf(p, "\"start_inv\":%u,", ctrl_startInv);
     p += sprintf(p, "\"manual-mode\":%u,", ctrl_manualMode);
 
     p += sprintf(p, "\"start_ab\":%u", ctrl_startAB);
-
 
     *p++ = '}';
     *p++ = 0;
