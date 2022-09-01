@@ -18,7 +18,8 @@ extern "C" {
 
 void Sine_start_task(void);
 void Sine_set_amplitude(float ampl);
-
+void Sine_start_wave();
+void Sine_stop_wave();
 
 #ifdef __cplusplus
 }

@@ -31,6 +31,9 @@
 #define SINE_SPEED              10
 #define NVALUES                 400                                 // Number of SINE levels
 
+#define FALSE                   0
+#define TRUE                    1
+
 // ======================================================================
 //  TYPE DEFINITIONS
 // ======================================================================
@@ -55,6 +58,10 @@ typedef struct {
 // ======================================================================
 // LOCAL VARIABLES
 // ======================================================================
+
+static const char *TAG = "SINE TIMER";
+
+static volatile uint8_t sine_enabled = FALSE;
 
 static volatile float sine_scale = MIN_SINE_AMPLITUDE;    // 50 - maximum value - 100% (MAX_SINE_AMPLITUDE)
 static xQueueHandle s_timer_queue;
@@ -86,7 +93,7 @@ static bool IRAM_ATTR timer_group_isr_callback(void *args)
         .timer_counter_value = timer_counter_value
     };
 
-    /* Now just send the event data back to the main program task */
+    /* Now just send the event data back to the program task */
     xQueueSendFromISR(s_timer_queue, &evt, &high_task_awoken);
 
     return high_task_awoken == pdTRUE; // return whether we need to yield at the end of ISR
@@ -163,6 +170,15 @@ static void sine_timer_task(void *arg)
         example_timer_event_t evt;
         xQueueReceive(s_timer_queue, &evt, portMAX_DELAY);
 
+        // Fof the disables sine generation
+        if(sine_enabled == FALSE)
+        {
+            duty_a = 0;
+            duty_b = NVALUES / 2;
+            sine_scale = 0;
+            continue;
+        }
+
         // Received message from timer here
         duty_a ++;
         duty_b ++;
@@ -177,6 +193,12 @@ static void sine_timer_task(void *arg)
             duty_b = 0;
         }
 
+        // Sine wave is generated in positive values by shifting it's values 
+        // 50.0 is a 0-lelev for up-shisfted Sine wave
+        // The whole Sine values range is 100: From -50 to 50
+        // Moving Sine up by 50.0 will shift the whole Sine to positive values
+        // This shift allows to calculate timer compare levels and map them to Timer value that is only in positive values
+
         set_duty_a( 50.0 + sine_scale * sine_value[duty_a]);
         set_duty_b( 50.0 + sine_scale * sine_value[duty_b]);
     }
@@ -186,6 +208,31 @@ static void sine_timer_task(void *arg)
 // ======================================================================
 // EXTERNAL FUNCTION DEFINITIONS
 // ======================================================================
+
+/**
+ * @brief Stops Sine wave generation
+ * 
+ */
+void Sine_stop_wave()
+{
+    sine_enabled = FALSE;
+
+    ESP_LOGI(TAG, "Sine_stop_wave()");
+
+    set_duty_a( 50.0);
+    set_duty_b( 50.0);
+}
+
+/**
+ * @brief Starts Sine wave generation
+ * 
+ */
+void Sine_start_wave()
+{
+    ESP_LOGI(TAG, "Sine_start_wave()");
+
+    sine_enabled = TRUE;
+}
 
 
 /**

@@ -29,10 +29,19 @@
 #include "uart_task.h"
 #include "enc28j60_task.h"
 
+// ===================================================================
+// CONSTANTS
+// ===================================================================
+
+
+#define ON      1
+#define OFF     0
 #define TRUE    1
 #define FALSE   0
 #define BAT_OK      '+'
 #define BAT_FAILURE '-'
+
+#define U_SETI_THRESHOLD    (220000 * 0.8)
 
 // ===================================================================
 // LOCAL VARIABLES
@@ -56,6 +65,8 @@ volatile uint8_t st_batteries[12] = {BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT
 volatile uint8_t ctrl_startInv = FALSE;      // Starts/Stops Inverter. Assigned with webpage control
 volatile uint8_t ctrl_startAB = FALSE;       // Starts/Stops Charging device. Assigned with webpage control
 volatile uint8_t ctrl_manualMode = FALSE;    // TRUE - manual mode; FALSE - automatic mode
+
+volatile uint8_t state_InvStarted = FALSE;           // Indicates if the Invertor has finished soft start step or not
 
 // ===================================================================
 // LOCAL FUNCTIONS
@@ -88,6 +99,35 @@ static esp_err_t parse_get(httpd_req_t *req, char **obuf)
     }
     httpd_resp_send_404(req);
     return ESP_FAIL;
+}
+
+
+/**
+ * @brief Enables Invertor to start
+ * 
+ * @param value     ON, OFF
+ */
+void Set_StartInv(uint8_t value)
+{
+    ctrl_startInv = value;
+    UART_set_StartInv(ctrl_startInv);
+
+    // Wait for the signal to pass to Atmega over UART
+    vTaskDelay(1);
+
+
+    if(value == OFF)
+    {
+        ESP_LOGI(TAG, "Sine_stop_wave()");
+        Sine_stop_wave();
+
+        // This flag will be set after soft start procedure is finished in the main code
+        state_InvStarted = FALSE;
+    }
+    else {
+        ESP_LOGI(TAG, "Sine_start_wave()");
+        Sine_start_wave();
+    }
 }
 
 
@@ -261,8 +301,11 @@ static esp_err_t cmd_handler(httpd_req_t *req)
             int value = atoi(_value);
             ESP_LOGI(TAG, "Command StartInv: %d", value);
 
-            ctrl_startInv = (uint8_t)(value);
-            UART_set_StartInv(ctrl_startInv);
+            // Server command should work for manual mode
+            if(ctrl_manualMode == TRUE)
+            {
+                Set_StartInv((uint8_t)(value));
+            }
         } 
         else if( httpd_query_key_value(buf, "startAB", _value, sizeof(_value)) == ESP_OK ) 
         {
@@ -459,28 +502,6 @@ static const httpd_uri_t pwm_uri = {
 
 
 // -----------------------------------------------
-//
-// -----------------------------------------------
-
-/**
- * @brief Starts Invertor in soft mode
- * 
- */
-void StartInvertor(void)
-{
-    // Sends StartInv command to Atmega MCU
-
-
-
-    for(float scale = MIN_SINE_AMPLITUDE; scale < (MAX_SINE_AMPLITUDE * 0.9); scale += 1.0)
-    {
-        Sine_set_amplitude(scale);
-        vTaskDelay(2);
-    }
-
-}
-
-// -----------------------------------------------
 // SERVER
 // -----------------------------------------------
 
@@ -619,14 +640,6 @@ void app_main(void)
     UART_set_StartAB(ctrl_startAB);
 
 
-    // Sine Soft Start
-    for(float scale = MIN_SINE_AMPLITUDE; scale < (MAX_SINE_AMPLITUDE * 0.9); scale += 1.0)
-    {
-        Sine_set_amplitude(scale);
-        vTaskDelay(2);
-    }
-
-
     // Automatic control
     while(1)
     {
@@ -636,6 +649,37 @@ void app_main(void)
             ESP_LOGD(TAG, "Uab = %d", params.Uab);
         }
 
+        // Control Automatic mode
+        if(ctrl_manualMode == FALSE)
+        {
+            if(params.Useti < U_SETI_THRESHOLD ) {
+                if(state_InvStarted == FALSE) {
+                    ESP_LOGI(TAG, "Set Invertor to start as Useti < 0.8 * 220 V");
+
+                    Set_StartInv(ON);
+                }
+            }
+            else {
+                Set_StartInv(OFF);
+            }
+        }
+
+        // Start Invertor if not yet started
+        if(ctrl_startInv == TRUE)
+        {
+            if(state_InvStarted == FALSE)
+            {
+                // Invertor soft start
+                for(float scale = MIN_SINE_AMPLITUDE; scale < (MAX_SINE_AMPLITUDE * 0.9); scale += 1.0)
+                {
+                    Sine_set_amplitude(scale);
+                    vTaskDelay(2);
+                }
+
+                ESP_LOGI(TAG, "Invertor started");
+                state_InvStarted = TRUE;
+            }
+        }
 
         vTaskDelay(60);
     }

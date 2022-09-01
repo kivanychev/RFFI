@@ -23,7 +23,10 @@
         "string": "c",
         "string_view": "c",
         "sdkconfig.h": "c",
-        "uart_task.h": "c"
+        "uart_task.h": "c",
+        "mcpwm.h": "c",
+        "sine_timer.h": "c",
+        "*.inc": "c"
     },
     "idf.flashType": "UART"
 }
