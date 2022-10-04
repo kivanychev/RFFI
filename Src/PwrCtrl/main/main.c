@@ -41,6 +41,8 @@
 #define BAT_OK      '+'
 #define BAT_FAILURE '-'
 
+#define ISET_DEFAULT        0xff
+
 #define U_SETI_THRESHOLD    (220000 * 0.8)
 
 // ===================================================================
@@ -638,7 +640,7 @@ void app_main(void)
     ctrl_manualMode = FALSE;
     UART_set_StartInv(ctrl_startInv);
     UART_set_StartAB(ctrl_startAB);
-
+    UART_set_Iset_level(ISET_DEFAULT);
 
     // Automatic control
     while(1)
