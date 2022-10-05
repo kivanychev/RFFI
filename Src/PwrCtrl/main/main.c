@@ -43,7 +43,7 @@
 
 #define ISET_DEFAULT        0xff
 
-#define U_SETI_THRESHOLD    (220000 * 0.8)
+#define U_SETI_THRESHOLD    (220000 * 0.9)
 
 // ===================================================================
 // LOCAL VARIABLES
@@ -656,7 +656,7 @@ void app_main(void)
         {
             if(params.Useti < U_SETI_THRESHOLD ) {
                 if(state_InvStarted == FALSE) {
-                    ESP_LOGI(TAG, "Set Invertor to start as Useti < 0.8 * 220 V");
+                    ESP_LOGI(TAG, "Set Invertor to start as Useti < 0.9 * 220 V");
 
                     Set_StartInv(ON);
                 }
