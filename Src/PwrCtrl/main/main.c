@@ -166,7 +166,7 @@ static esp_err_t status_handler(httpd_req_t *req)
     p += sprintf(p, "\"i_te\":%u.%u,", params.Ite/1000, params.Ite % 1000);
     p += sprintf(p, "\"u_te\":%u.%u,", params.Ute/1000, params.Ute % 1000);
     p += sprintf(p, "\"u_ab\":%u.%u,", params.Uab/1000, params.Uab % 1000);
-    p += sprintf(p, "\"i_ab\":%u.%u,", params.Iab/1000, params.Iab % 1000);   
+    p += sprintf(p, "\"i_ab\":%u.%u,", params.Iab/1000, params.Iab % 1000);
     p += sprintf(p, "\"batteries\":\"%c%c%c%c %c%c%c%c %c%c%c%c\",", st_batteries[0], st_batteries[1], st_batteries[2],
                                                                      st_batteries[3], st_batteries[4], st_batteries[5],
                                                                      st_batteries[6], st_batteries[7], st_batteries[8],

@@ -32,18 +32,18 @@ typedef enum {
 
 typedef struct {
     uint32_t raw;           // Raw value. Accumulated on data collection
-    uint32_t voltage;       // Resulting voltage after calculating middle value
+    uint32_t voltage;       // Resulting voltage in milli Volts after calculating middle value
 
 } ParamValue_t;
 
-// Frame of measured parameters in millli Volts
+// Frame of measured parameters in milli Volts
 typedef struct {
-    uint32_t Useti;     // mV
-    uint32_t Uinv;      // mV
-    uint32_t Iab;       // mA
-    uint32_t Ite;       // mA
-    uint32_t Uab;       // mV
-    uint32_t Ute;       // mV
+    uint32_t Useti;   
+    uint32_t Uinv;
+    uint32_t Iab;
+    uint32_t Ite;
+    uint32_t Uab;
+    uint32_t Ute;
 
 } ParamDataFrame_t;
 

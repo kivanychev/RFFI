@@ -29,6 +29,15 @@
 #define TRUE                    1
 #define FALSE                   0
 
+// Zero offset values in milli Volts
+#define I_TE_ZERO_OFFSET        1679
+#define I_AB_ZERO_OFFSET        1674
+
+// Coefficient delimiter
+#define COEFF_DELIMITER_100     100
+#define COEFF_DELIMITER_10      10
+#define COEFF_DELIMITER_1       1
+
 // ======================================================================
 // MACROS DEFINITIONS
 // ======================================================================
@@ -177,9 +186,8 @@ void adc_task(void *args)
                 }
             }
 
-            // Get voltage value for Maximum value  
-            // Um / sqrt(2) ???? - I can use only one coefficiend for assigning measured value to the physical parameter value
-            params[paramId].voltage = (esp_adc_cal_raw_to_voltage(params[paramId].raw, adc_chars) * 1000) / 1414;
+            // Get voltage value for Maximum immediate value  
+            params[paramId].voltage = esp_adc_cal_raw_to_voltage(params[paramId].raw, adc_chars);
         }
 
         // Part 2: Measure other signals
@@ -202,12 +210,12 @@ void adc_task(void *args)
         // Checking if some one wants to get measured data
         if( ThereIsDataFrameRequest() )
         {
-            param_data_frame.Uab = params[ADC_CH_U_AB].voltage * coeff.U_AB;
-            param_data_frame.Uinv = params[ADC_CH_U_INV].voltage * coeff.U_INV;
-            param_data_frame.Iab = params[ADC_CH_I_AB].voltage * coeff.I_AB;
-            param_data_frame.Ite = params[ADC_CH_I_TE].voltage * coeff.I_TE;
-            param_data_frame.Useti = params[ADC_CH_U_SETI].voltage * coeff.U_SETI;
-            param_data_frame.Ute = params[ADC_CH_U_TE].voltage * coeff.U_TE;
+            param_data_frame.Uab = (params[ADC_CH_U_AB].voltage * coeff.U_AB)                       / COEFF_DELIMITER_1;
+            param_data_frame.Uinv = (params[ADC_CH_U_INV].voltage * coeff.U_INV)                    / COEFF_DELIMITER_1;
+            param_data_frame.Iab = ((params[ADC_CH_I_AB].voltage - I_AB_ZERO_OFFSET) * coeff.I_AB)  / COEFF_DELIMITER_100;
+            param_data_frame.Ite = ((params[ADC_CH_I_TE].voltage - I_TE_ZERO_OFFSET) * coeff.I_TE)  / COEFF_DELIMITER_100;
+            param_data_frame.Useti = (params[ADC_CH_U_SETI].voltage * coeff.U_SETI)                 / COEFF_DELIMITER_1;
+            param_data_frame.Ute = (params[ADC_CH_U_TE].voltage * coeff.U_TE)                       / COEFF_DELIMITER_10;
 
             // Reset flag
             DataFrameRequestComplete();

@@ -405,7 +405,7 @@
 
                         <section id="batteries-section" class="nothidden">
                             <div class="input-group" id="set-batteries-group">
-                              <label for="set-batteries">Секции АБ</label>
+                              <label id="batteries_label" for="set-batteries">Секции АБ</label>
                               <div class="text">
                                 <input id="batteries" type="text" minlength="1" maxlength="2" size="11" value=".... .... ...." class="default-action">
                               </div>
@@ -492,7 +492,7 @@
                         <div class="input-group" id="set-u-seti-coeff-group">
                             <label for="set-u-seti-coeff">Напряжение сети</label>
                             <div class="text">
-                                  <input id="u-seti-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
+                                  <input id="u-seti-coeff" type="text" minlength="1" maxlength="4" size="3" value="1" class="default-coeff">
                             </div>
                             <button class="inline-button" id="set-u-seti-coeff">Set</button>
                         </div>
@@ -500,7 +500,7 @@
                         <div class="input-group" id="set-u-inv-coeff-group">
                             <label for="set-u-inv-coeff">Напряжение Инвертора</label>
                             <div class="text">
-                                  <input id="u-inv-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
+                                  <input id="u-inv-coeff" type="text" minlength="1" maxlength="4" size="3" value="1" class="default-coeff">
                             </div>
                             <button class="inline-button" id="set-u-inv-coeff">Set</button>
                         </div>
@@ -508,7 +508,7 @@
                         <div class="input-group" id="set-u-te-coeff-group">
                           <label for="set-u-te-coeff">Напр-е топливного эл-та</label>
                           <div class="text">
-                                <input id="u-te-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
+                                <input id="u-te-coeff" type="text" minlength="1" maxlength="4" size="3" value="1" class="default-coeff">
                           </div>
                           <button class="inline-button" id="set-u-te-coeff">Set</button>
                         </div>
@@ -516,7 +516,7 @@
                         <div class="input-group" id="set-i-te-coeff-group">
                           <label for="set-i-te-coeff">Ток топливного элемента</label>
                           <div class="text">
-                              <input id="i-te-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
+                              <input id="i-te-coeff" type="text" minlength="1" maxlength="4" size="3" value="1" class="default-coeff">
                           </div>
                           <button class="inline-button" id="set-i-te-coeff">Set</button>
                         </div>
@@ -524,7 +524,7 @@
                         <div class="input-group" id="set-i-ab-coeff-group">
                           <label for="set-i-ab-coeff">Ток АБ</label>
                           <div class="text">
-                              <input id="i-ab-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
+                              <input id="i-ab-coeff" type="text" minlength="1" maxlength="4" size="3" value="1" class="default-coeff">
                           </div>
                           <button class="inline-button" id="set-i-ab-coeff">Set</button>
                         </div>
@@ -532,7 +532,7 @@
                         <div class="input-group" id="set-u-ab-coeff-group">
                           <label for="set-u-ab-coeff">Напряжение АБ</label>
                           <div class="text">
-                              <input id="u-ab-coeff" type="text" minlength="1" maxlength="3" size="3" value="1" class="default-coeff">
+                              <input id="u-ab-coeff" type="text" minlength="1" maxlength="4" size="3" value="1" class="default-coeff">
                           </div>
                           <button class="inline-button" id="set-u-ab-coeff">Set</button>
                         </div>
@@ -901,6 +901,20 @@ document.addEventListener('DOMContentLoaded', function (event) {
       {
         el.value = value;
       }
+
+
+      if(el.id == "batteries")
+      {
+        if(el.value != "++++ ++++ ++++")
+        {
+          batLabel = document.getElementById("batteries_label").innerHTML = "Секции АБ - НЕИСПРАВНО";
+        }
+        else
+        {
+          batLabel = document.getElementById("batteries_label").innerHTML = "Секции АБ";
+        }
+      }
+
 
       if(el.id == "invertor-state-text")
       {
