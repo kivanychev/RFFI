@@ -187,7 +187,7 @@ void adc_task(void *args)
             }
 
             // Get voltage value for Maximum immediate value  
-            params[paramId].voltage = esp_adc_cal_raw_to_voltage(params[paramId].raw, adc_chars);
+            params[paramId].voltage = (int32_t)esp_adc_cal_raw_to_voltage(params[paramId].raw, adc_chars);
         }
 
         // Part 2: Measure other signals
@@ -204,17 +204,17 @@ void adc_task(void *args)
 
             // Calculate average value
             params[paramId].raw /= NO_OF_SAMPLES;
-            params[paramId].voltage = esp_adc_cal_raw_to_voltage(params[paramId].raw, adc_chars);
+            params[paramId].voltage = (int32_t)esp_adc_cal_raw_to_voltage(params[paramId].raw, adc_chars);
         }
 
         // Checking if some one wants to get measured data
         if( ThereIsDataFrameRequest() )
         {
-            param_data_frame.Uab = (params[ADC_CH_U_AB].voltage * coeff.U_AB)                       / COEFF_DELIMITER_1;
-            param_data_frame.Uinv = (params[ADC_CH_U_INV].voltage * coeff.U_INV)                    / COEFF_DELIMITER_1;
-            param_data_frame.Iab = ((params[ADC_CH_I_AB].voltage - I_AB_ZERO_OFFSET) * coeff.I_AB)  / COEFF_DELIMITER_100;
-            param_data_frame.Ite = ((params[ADC_CH_I_TE].voltage - I_TE_ZERO_OFFSET) * coeff.I_TE)  / COEFF_DELIMITER_100;
-            param_data_frame.Useti = (params[ADC_CH_U_SETI].voltage * coeff.U_SETI)                 / COEFF_DELIMITER_1;
+            param_data_frame.Uab = (params[ADC_CH_U_AB].voltage * coeff.U_AB)                       / COEFF_DELIMITER_10;
+            param_data_frame.Uinv = (params[ADC_CH_U_INV].voltage * coeff.U_INV)                    / COEFF_DELIMITER_10;
+            param_data_frame.Iab = ((params[ADC_CH_I_AB].voltage - I_AB_ZERO_OFFSET) * (int32_t)coeff.I_AB)  / COEFF_DELIMITER_10;
+            param_data_frame.Ite = ((params[ADC_CH_I_TE].voltage - I_TE_ZERO_OFFSET) * (int32_t)coeff.I_TE)  / COEFF_DELIMITER_10;
+            param_data_frame.Useti = (params[ADC_CH_U_SETI].voltage * coeff.U_SETI)                 / COEFF_DELIMITER_10;
             param_data_frame.Ute = (params[ADC_CH_U_TE].voltage * coeff.U_TE)                       / COEFF_DELIMITER_10;
 
             // Reset flag
