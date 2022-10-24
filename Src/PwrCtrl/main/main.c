@@ -45,6 +45,7 @@
 
 #define U_SETI_THRESHOLD    (220000 * 0.9)
 
+#define ALL_BATTERIES_OK    0
 // ===================================================================
 // LOCAL VARIABLES
 // ===================================================================
@@ -64,11 +65,14 @@ volatile uint8_t st_batteries[12] = {BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT
                                   BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK};
 
 // Variables for controlling Inverter
-volatile uint8_t ctrl_startInv = FALSE;      // Starts/Stops Inverter. Assigned with webpage control
-volatile uint8_t ctrl_startAB = FALSE;       // Starts/Stops Charging device. Assigned with webpage control
-volatile uint8_t ctrl_manualMode = FALSE;    // TRUE - manual mode; FALSE - automatic mode
+volatile uint8_t ctrl_startInv = FALSE;         // Starts/Stops Inverter. Assigned with webpage control
+volatile uint8_t ctrl_startAB = FALSE;          // Starts/Stops Charging device. Assigned with webpage control
+volatile uint8_t ctrl_manualMode = FALSE;       // TRUE - manual mode; FALSE - automatic mode
 
-volatile uint8_t state_InvStarted = FALSE;           // Indicates if the Invertor has finished soft start step or not
+// Power controller element states
+volatile uint8_t state_InvStarted = FALSE;      // Indicates if the Invertor has finished soft start step or not
+volatile uint8_t state_InvFault = FALSE;        // Indicates if Inverter driver Fault signal received
+volatile uint8_t state_ABsectionsGood = TRUE;   // Indicates tha all sections of AB are good
 
 // ===================================================================
 // LOCAL FUNCTIONS
@@ -105,7 +109,9 @@ static esp_err_t parse_get(httpd_req_t *req, char **obuf)
 
 
 /**
- * @brief Enables Invertor to start
+ * @brief Enables or disables Inverter sine wave generation 
+ *        and sets Start_Inv signal to 1 or 0 depending on 'value'
+ *        After the Inveter stops a new softStart procedure will be performed on next start
  * 
  * @param value     ON, OFF
  */
@@ -132,6 +138,17 @@ void Set_StartInv(uint8_t value)
     }
 }
 
+/**
+ * @brief Enables or disables Start_AB signal
+ * 
+ * @param value     ON, OFF
+ */
+void Set_StartAB(uint8_t value)
+{
+    ctrl_startAB = value;
+
+    UART_set_StartAB(ctrl_startAB);
+}
 
 // -----------------------------------------------
 // STATUS HANDLER
@@ -634,35 +651,73 @@ void app_main(void)
     UART_start_task();
     enc28j60_init();
 
-    // System state initialization
+    // Variables reflecting the states of the UI controlling switches
     ctrl_startInv = FALSE;
     ctrl_startAB = FALSE;
     ctrl_manualMode = FALSE;
+
+    // Temporayry states variables 
+    uint8_t sig_startInv = FALSE;
+    uint8_t sig_startAB = FALSE;
+
+    // Default signal states
     UART_set_StartInv(ctrl_startInv);
     UART_set_StartAB(ctrl_startAB);
     UART_set_Iset_level(ISET_DEFAULT);
 
-    // Automatic control
+
     while(1)
     {
         if(http_response_active == FALSE)
         {
             ADC_get_values(&params);
-            ESP_LOGD(TAG, "Uab = %d", params.Uab);
+            ESP_LOGD(TAG, "Useti = %d", params.Useti);
         }
 
+        //////////////////////////
         // Control Automatic mode
+        //////////////////////////
+
         if(ctrl_manualMode == FALSE)
         {
-            if(params.Useti < U_SETI_THRESHOLD ) {
-                if(state_InvStarted == FALSE) {
+            // Check if the Inverter is to be turned On
+            if(params.Useti < U_SETI_THRESHOLD ) 
+            {
+                sig_startInv = TRUE;
+                sig_startAB = TRUE;
+
+                // Check batteries
+                if( UART_get_battery_state() != ALL_BATTERIES_OK )
+                {
+                    if(params.Iab < 0)
+                    {
+                        sig_startAB = FALSE;
+                    }
+                    else
+                    {
+                        sig_startInv = FALSE;
+                    }
+                }
+
+                // Check Inverter Fault signal
+                if(UART_get_fault_state() == 1)
+                {
+                    sig_startInv = FALSE;
+                }
+
+                // Perform inverter operations
+                if(state_InvStarted == FALSE && sig_startInv == TRUE) {
                     ESP_LOGI(TAG, "Set Invertor to start as Useti < 0.9 * 220 V");
 
                     Set_StartInv(ON);
                 }
+
+                Set_StartAB(sig_startAB);
             }
-            else {
+            else 
+            {   // Turn off the Inverter
                 Set_StartInv(OFF);
+                Set_StartAB(OFF);
             }
         }
 
@@ -671,19 +726,19 @@ void app_main(void)
         {
             if(state_InvStarted == FALSE)
             {
-                // Invertor soft start
+                // Perform Invertor soft start
                 for(float scale = MIN_SINE_AMPLITUDE; scale < (MAX_SINE_AMPLITUDE * 0.9); scale += 1.0)
                 {
                     Sine_set_amplitude(scale);
                     vTaskDelay(2);
                 }
 
-                ESP_LOGI(TAG, "Invertor started");
+                ESP_LOGI(TAG, "Inverter started");
                 state_InvStarted = TRUE;
             }
         }
 
-        vTaskDelay(60);
+        vTaskDelay(30);
     }
 
 }
