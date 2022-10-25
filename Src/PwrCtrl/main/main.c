@@ -46,6 +46,8 @@
 #define U_SETI_THRESHOLD    (220000 * 0.9)
 
 #define ALL_BATTERIES_OK    0
+#define INVERTER_FAULT      0
+
 // ===================================================================
 // LOCAL VARIABLES
 // ===================================================================
@@ -660,6 +662,9 @@ void app_main(void)
     uint8_t sig_startInv = FALSE;
     uint8_t sig_startAB = FALSE;
 
+    // Sine amplitude value for stabilization mode
+    float sine_amplitude = MAX_SINE_AMPLITUDE;
+
     // Default signal states
     UART_set_StartInv(ctrl_startInv);
     UART_set_StartAB(ctrl_startAB);
@@ -683,6 +688,10 @@ void app_main(void)
             // Check if the Inverter is to be turned On
             if(params.Useti < U_SETI_THRESHOLD ) 
             {
+                //////////////////////////////////////////////
+                //            FAILURE HANDLING                
+                //////////////////////////////////////////////
+
                 sig_startInv = TRUE;
                 sig_startAB = TRUE;
 
@@ -701,9 +710,16 @@ void app_main(void)
                 }
 
                 // Check Inverter Fault signal
-                if(UART_get_fault_state() == 0)
+                if( UART_get_fault_state() == INVERTER_FAULT )
                 {
-                    ESP_LOGD(TAG, "Fault: ---> Start_Inv = 0");
+                    ESP_LOGD(TAG, "Fault: ---> Start_Inv = OFF");
+                    sig_startInv = FALSE;
+                }
+
+                // Turn off the Inverter if the AB voltage is lower than 300V
+                if( params.Uab < 300000 )
+                {
+                    ESP_LOGD(TAG, "Uab < 300V  ---> Start_Inv = OFF");
                     sig_startInv = FALSE;
                 }
 
@@ -732,6 +748,33 @@ void app_main(void)
                 // ---------------
 
                 Set_StartAB(sig_startAB);
+
+
+                //////////////////////////////////////////////
+                //           STABILIZATION HANDLING
+                //////////////////////////////////////////////
+
+                if(params.Iab > 6000)
+                {
+                    ESP_LOGI(TAG, "Iab > 6A");
+                    if(sine_amplitude > MIN_SINE_AMPLITUDE)
+                    {
+                        sine_amplitude -= 0.5;
+                        Sine_set_amplitude(sine_amplitude);
+                    }
+                }
+
+                if(params.Iab < 5500)
+                {
+                    if(sine_amplitude < (MAX_SINE_AMPLITUDE - 0.5) )
+                    {
+                        sine_amplitude += 0.5;
+                        Sine_set_amplitude(sine_amplitude);
+                        ESP_LOGD(TAG, "Iab < 5.8A, set amplitude %f", sine_amplitude);
+                    }
+                }
+
+
             }
             else 
             {   // Turn off the Inverter
@@ -745,19 +788,21 @@ void app_main(void)
         {
             if(state_InvStarted == FALSE)
             {
-                // Perform Invertor soft start
-                for(float scale = MIN_SINE_AMPLITUDE; scale < (MAX_SINE_AMPLITUDE * 0.9); scale += 1.0)
+                // PERFORM INVERTER SOFT START HERE
+                for(float scale = MIN_SINE_AMPLITUDE; scale < MAX_SINE_AMPLITUDE; scale += 1.0)
                 {
                     Sine_set_amplitude(scale);
-                    vTaskDelay(2);
+                    vTaskDelay(1);
                 }
+
+                sine_amplitude = MAX_SINE_AMPLITUDE;
 
                 ESP_LOGI(TAG, "Inverter started");
                 state_InvStarted = TRUE;
             }
         }
 
-        vTaskDelay(10);
+        vTaskDelay(20);
     }
 
 }
