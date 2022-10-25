@@ -419,6 +419,12 @@
                           </div>
                         </div>
 
+                        <div class="input-group" id="bat-state">
+                          <label>Состояние Ак Батареи</label>
+                          <div class="text">
+                            <input id="bat-state-text" type="text" minlength="1" maxlength="2" size="11" value="..." class="default-action">
+                          </div>
+                        </div>
 
                       <hr style="width:100%">
 
@@ -915,6 +921,19 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
       }
 
+      if(el.id == "i_ab")
+      {
+        if(value < 0)
+        {
+          console.log("Состояние АБ - Заряд");
+          document.getElementById("bat-state-text").value = "Заряд";
+        }
+        else
+        {
+          console.log("Состояние АБ - Разряд");
+          document.getElementById("bat-state-text").value = "Разряд";
+        }
+      }
 
       if(el.id == "invertor-state-text")
       {
@@ -933,6 +952,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
           btn.classList.add('disabled');
         }
       }
+
 
     }
   }

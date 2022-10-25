@@ -695,22 +695,41 @@ void app_main(void)
                     }
                     else
                     {
+                        ESP_LOGD(TAG, "Bat error: Iab > 0 ---> Start_Inv = 0");
                         sig_startInv = FALSE;
                     }
                 }
 
                 // Check Inverter Fault signal
-                if(UART_get_fault_state() == 1)
+                if(UART_get_fault_state() == 0)
                 {
+                    ESP_LOGD(TAG, "Fault: ---> Start_Inv = 0");
                     sig_startInv = FALSE;
                 }
 
-                // Perform inverter operations
-                if(state_InvStarted == FALSE && sig_startInv == TRUE) {
-                    ESP_LOGI(TAG, "Set Invertor to start as Useti < 0.9 * 220 V");
+                // ---------------------
+                // APPLY INVERTER SIGNAL 
+                // ---------------------
 
-                    Set_StartInv(ON);
+                if(sig_startInv == TRUE)
+                {
+                    ESP_LOGD(TAG, "sig_startInv == TRUE");
+                    // If not yet started then indicate to start the Inverter
+                    if(state_InvStarted == FALSE) {
+                        ESP_LOGI(TAG, "Set Invertor to start as Useti < 0.9 * 220 V");
+
+                        Set_StartInv(ON);
+                    }
                 }
+                else
+                {
+                    ESP_LOGD(TAG, "sig_startInv == FALSE");
+                    Set_StartInv(OFF);
+                }
+
+                // ---------------
+                // APPLY AB SIGNAL 
+                // ---------------
 
                 Set_StartAB(sig_startAB);
             }
@@ -738,7 +757,7 @@ void app_main(void)
             }
         }
 
-        vTaskDelay(30);
+        vTaskDelay(10);
     }
 
 }
