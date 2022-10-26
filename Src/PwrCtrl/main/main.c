@@ -764,7 +764,7 @@ void app_main(void)
                     }
                 }
 
-                if(params.Iab < 5500)
+                if(params.Iab < 5990)
                 {
                     if(sine_amplitude < (MAX_SINE_AMPLITUDE - 0.5) )
                     {
@@ -774,7 +774,6 @@ void app_main(void)
                     }
                 }
 
-
             }
             else 
             {   // Turn off the Inverter
@@ -783,7 +782,11 @@ void app_main(void)
             }
         }
 
-        // Start Invertor if not yet started
+        ////////////////////////////////////
+        // Start Inverter if not yet started
+        // For Manual and Automatic modes
+        ////////////////////////////////////
+
         if(ctrl_startInv == TRUE)
         {
             if(state_InvStarted == FALSE)
@@ -802,7 +805,7 @@ void app_main(void)
             }
         }
 
-        vTaskDelay(20);
+        vTaskDelay(10);
     }
 
 }
