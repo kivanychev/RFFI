@@ -47,6 +47,8 @@
 
 #define ALL_BATTERIES_OK    0
 #define INVERTER_FAULT      0
+#define MAX_AB_CURRENT      6000
+#define SOFT_START_STEP     2.5
 
 // ===================================================================
 // LOCAL VARIABLES
@@ -61,7 +63,6 @@ volatile int http_response_active = FALSE;
 ParamDataFrame_t params;
 ADC_coeff_t *param_coeff = NULL;
 
-
 // Battery sections states
 volatile uint8_t st_batteries[12] = {BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, 
                                   BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK, BAT_OK};
@@ -75,6 +76,9 @@ volatile uint8_t ctrl_manualMode = FALSE;       // TRUE - manual mode; FALSE - a
 volatile uint8_t state_InvStarted = FALSE;      // Indicates if the Invertor has finished soft start step or not
 volatile uint8_t state_InvFault = FALSE;        // Indicates if Inverter driver Fault signal received
 volatile uint8_t state_ABsectionsGood = TRUE;   // Indicates tha all sections of AB are good
+
+// Sine amplitude value for controlling sine scale in soft start and stabilization modes
+volatile float sine_amplitude = MIN_SINE_AMPLITUDE;
 
 // ===================================================================
 // LOCAL FUNCTIONS
@@ -133,6 +137,7 @@ void Set_StartInv(uint8_t value)
 
         // This flag will be set after soft start procedure is finished in the main code
         state_InvStarted = FALSE;
+        sine_amplitude = MIN_SINE_AMPLITUDE;
     }
     else {
         ESP_LOGI(TAG, "Sine_start_wave()");
@@ -662,14 +667,12 @@ void app_main(void)
     uint8_t sig_startInv = FALSE;
     uint8_t sig_startAB = FALSE;
 
-    // Sine amplitude value for stabilization mode
-    float sine_amplitude = MAX_SINE_AMPLITUDE;
+    sine_amplitude = MIN_SINE_AMPLITUDE;
 
     // Default signal states
     UART_set_StartInv(ctrl_startInv);
     UART_set_StartAB(ctrl_startAB);
     UART_set_Iset_level(ISET_DEFAULT);
-
 
     while(1)
     {
@@ -754,23 +757,26 @@ void app_main(void)
                 //           STABILIZATION HANDLING
                 //////////////////////////////////////////////
 
-                if(params.Iab > 6000)
+                if( state_InvStarted == TRUE )
                 {
-                    ESP_LOGI(TAG, "Iab > 6A");
-                    if(sine_amplitude > MIN_SINE_AMPLITUDE)
+                    if(params.Iab > MAX_AB_CURRENT)
                     {
-                        sine_amplitude -= 0.5;
-                        Sine_set_amplitude(sine_amplitude);
+                        ESP_LOGI(TAG, "Iab > 6A");
+                        if(sine_amplitude > MIN_SINE_AMPLITUDE)
+                        {
+                            sine_amplitude -= 0.5;
+                            Sine_set_amplitude(sine_amplitude);
+                        }
                     }
-                }
 
-                if(params.Iab < 5990)
-                {
-                    if(sine_amplitude < (MAX_SINE_AMPLITUDE - 0.5) )
+                    if(params.Iab <= MAX_AB_CURRENT)
                     {
-                        sine_amplitude += 0.5;
-                        Sine_set_amplitude(sine_amplitude);
-                        ESP_LOGD(TAG, "Iab < 5.8A, set amplitude %f", sine_amplitude);
+                        if(sine_amplitude < MAX_SINE_AMPLITUDE )
+                        {
+                            sine_amplitude += 0.5;
+                            Sine_set_amplitude(sine_amplitude);
+                            ESP_LOGD(TAG, "Iab < 5.8A, set amplitude %f", sine_amplitude);
+                        }
                     }
                 }
 
@@ -792,20 +798,21 @@ void app_main(void)
             if(state_InvStarted == FALSE)
             {
                 // PERFORM INVERTER SOFT START HERE
-                for(float scale = MIN_SINE_AMPLITUDE; scale < MAX_SINE_AMPLITUDE; scale += 1.0)
+                if( sine_amplitude <= MAX_SINE_AMPLITUDE && params.Iab <= MAX_AB_CURRENT)
                 {
-                    Sine_set_amplitude(scale);
-                    vTaskDelay(1);
+                    Sine_set_amplitude(sine_amplitude);
+                    sine_amplitude += SOFT_START_STEP;
                 }
-
-                sine_amplitude = MAX_SINE_AMPLITUDE;
-
-                ESP_LOGI(TAG, "Inverter started");
-                state_InvStarted = TRUE;
+                else
+                {
+                    sine_amplitude = sine_amplitude;
+                    ESP_LOGI(TAG, "Inverter started");
+                    state_InvStarted = TRUE;
+                }
             }
         }
 
-        vTaskDelay(10);
+        vTaskDelay(5);
     }
 
 }
