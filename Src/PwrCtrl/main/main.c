@@ -80,6 +80,9 @@ volatile uint8_t state_ABsectionsGood = TRUE;   // Indicates tha all sections of
 // Sine amplitude value for controlling sine scale in soft start and stabilization modes
 volatile float sine_amplitude = MIN_SINE_AMPLITUDE;
 
+// Maximum sine amplitude value for manual mode
+volatile float manual_max_sine_amplitude = MAX_SINE_AMPLITUDE;
+
 // ===================================================================
 // LOCAL FUNCTIONS
 // ===================================================================
@@ -294,9 +297,11 @@ static esp_err_t sine_scale_handler(httpd_req_t *req)
         sine_scale = 5;
     }
 
+
     ESP_LOGI(TAG, "Set Sine scale: %d ", sine_scale);
 
-    Sine_set_amplitude(MAX_SINE_AMPLITUDE * (float)(sine_scale) / 100.0);
+    manual_max_sine_amplitude = MAX_SINE_AMPLITUDE * (float)(sine_scale) / 100.0;
+    Sine_set_amplitude(manual_max_sine_amplitude);
 
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     return httpd_resp_send(req, NULL, 0);
@@ -667,6 +672,7 @@ void app_main(void)
     uint8_t sig_startInv = FALSE;
     uint8_t sig_startAB = FALSE;
 
+    float max_sine_amplitude = MIN_SINE_AMPLITUDE;
     sine_amplitude = MIN_SINE_AMPLITUDE;
 
     // Default signal states
@@ -797,8 +803,15 @@ void app_main(void)
         {
             if(state_InvStarted == FALSE)
             {
+                if(ctrl_manualMode == TRUE) {
+                    max_sine_amplitude = manual_max_sine_amplitude;
+                }
+                else {
+                    max_sine_amplitude = MAX_SINE_AMPLITUDE;
+                }
+
                 // PERFORM INVERTER SOFT START HERE
-                if( sine_amplitude <= MAX_SINE_AMPLITUDE && params.Iab <= MAX_AB_CURRENT)
+                if( sine_amplitude <= max_sine_amplitude && params.Iab <= MAX_AB_CURRENT)
                 {
                     Sine_set_amplitude(sine_amplitude);
                     sine_amplitude += SOFT_START_STEP;
