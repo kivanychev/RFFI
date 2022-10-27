@@ -43,12 +43,29 @@
 
 #define ISET_DEFAULT        0xff
 
+// If the Useti < U_SETI_THRESHOLD then turn ON the Inverter
 #define U_SETI_THRESHOLD    (220000 * 0.9)
 
 #define ALL_BATTERIES_OK    0
 #define INVERTER_FAULT      0
+
 #define MAX_AB_CURRENT      6000
+
+#define U_INV_STAB          220000
+#define U_INV_LOWEST        ((U_INV_STAB / 100) * 95)
+#define U_INV_STAB_STEP     10
+
 #define SOFT_START_STEP     2.5
+
+// Trigger value for the stabilization counter
+#define STAB_COUNTER_TRIGGER    4
+
+// Message IDs for server
+#define MSGID_OK                                0
+#define MSGID_INV_SHUTDOWN_U_INV_LOWER_095      1
+#define MSGID_INV_SHUTDOWN_U_BAT_LOWER_300V     2
+#define MSGID_INV_SHUTDOWN_DRIVER_FAULT         3
+#define MSGID_INV_SHUTDOWN_BAT_FAILURE          4
 
 // ===================================================================
 // LOCAL VARIABLES
@@ -81,7 +98,11 @@ volatile uint8_t state_ABsectionsGood = TRUE;   // Indicates tha all sections of
 volatile float sine_amplitude = MIN_SINE_AMPLITUDE;
 
 // Maximum sine amplitude value for manual mode
-volatile float manual_max_sine_amplitude = MAX_SINE_AMPLITUDE;
+volatile float manual_max_sine_amplitude = (MAX_SINE_AMPLITUDE * 40.0) / 100.0;;
+
+// Message ID is sent in reply for 'status' request
+// It is cleared after it has been sent
+uint8_t message_id_to_server = MSGID_OK;
 
 // ===================================================================
 // LOCAL FUNCTIONS
@@ -204,10 +225,15 @@ static esp_err_t status_handler(httpd_req_t *req)
     p += sprintf(p, "\"start_inv\":%u,", ctrl_startInv);
     p += sprintf(p, "\"manual-mode\":%u,", ctrl_manualMode);
 
-    p += sprintf(p, "\"start_ab\":%u", ctrl_startAB);
+    p += sprintf(p, "\"start_ab\":%u,", ctrl_startAB);
+
+    p += sprintf(p, "\"message_id\":%d", message_id_to_server);
 
     *p++ = '}';
     *p++ = 0;
+
+    message_id_to_server = MSGID_OK;
+
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     return httpd_resp_send(req, json_response, strlen(json_response));
@@ -663,6 +689,11 @@ void app_main(void)
     UART_start_task();
     enc28j60_init();
 
+    // Stabilization counter. Performs delay before applying Sine amplitude to change
+    // Made for the measures to be received before sine value go out the optimal range
+    uint u_inv_stab_counter = 0;
+
+
     // Variables reflecting the states of the UI controlling switches
     ctrl_startInv = FALSE;
     ctrl_startAB = FALSE;
@@ -715,6 +746,7 @@ void app_main(void)
                     {
                         ESP_LOGD(TAG, "Bat error: Iab > 0 ---> Start_Inv = 0");
                         sig_startInv = FALSE;
+                        message_id_to_server = MSGID_INV_SHUTDOWN_BAT_FAILURE;
                     }
                 }
 
@@ -723,6 +755,7 @@ void app_main(void)
                 {
                     ESP_LOGD(TAG, "Fault: ---> Start_Inv = OFF");
                     sig_startInv = FALSE;
+                    message_id_to_server = MSGID_INV_SHUTDOWN_DRIVER_FAULT;
                 }
 
                 // Turn off the Inverter if the AB voltage is lower than 300V
@@ -730,6 +763,14 @@ void app_main(void)
                 {
                     ESP_LOGD(TAG, "Uab < 300V  ---> Start_Inv = OFF");
                     sig_startInv = FALSE;
+                    message_id_to_server = MSGID_INV_SHUTDOWN_U_BAT_LOWER_300V;
+                }
+
+                // Shut down Inverter if the output voltage is less than U_INV_LOWEST
+                if( params.Uinv < U_INV_LOWEST )
+                {
+                    sig_startInv = FALSE;
+                    message_id_to_server = MSGID_INV_SHUTDOWN_U_INV_LOWER_095;
                 }
 
                 // ---------------------
@@ -765,25 +806,43 @@ void app_main(void)
 
                 if( state_InvStarted == TRUE )
                 {
-                    if(params.Iab > MAX_AB_CURRENT)
+                    u_inv_stab_counter++;
+                    if( u_inv_stab_counter >= STAB_COUNTER_TRIGGER )
                     {
-                        ESP_LOGI(TAG, "Iab > 6A");
-                        if(sine_amplitude > MIN_SINE_AMPLITUDE)
-                        {
-                            sine_amplitude -= 0.5;
-                            Sine_set_amplitude(sine_amplitude);
-                        }
-                    }
+                        u_inv_stab_counter = 0;
 
-                    if(params.Iab <= MAX_AB_CURRENT)
-                    {
-                        if(sine_amplitude < MAX_SINE_AMPLITUDE )
+                        // Iab has higher priority for stabilization
+                        if(params.Iab > MAX_AB_CURRENT)
                         {
-                            sine_amplitude += 0.5;
-                            Sine_set_amplitude(sine_amplitude);
-                            ESP_LOGD(TAG, "Iab < 5.8A, set amplitude %f", sine_amplitude);
+                            //Decrease the voltage
+                            ESP_LOGI(TAG, "Iab > 6A");
+                            if(sine_amplitude > MIN_SINE_AMPLITUDE)
+                            {
+                                sine_amplitude -= 0.5;
+                                Sine_set_amplitude(sine_amplitude);
+                            }
                         }
-                    }
+                        else if( params.Uinv < (U_INV_STAB - U_INV_STAB_STEP) )
+                        {
+                            // Inverter output voltage stabilization
+                            // Raise the voltage
+                            if(sine_amplitude < MAX_SINE_AMPLITUDE )
+                            {
+                                sine_amplitude += 0.5;
+                                Sine_set_amplitude(sine_amplitude);
+                            }
+                        }
+
+                        if( params.Uinv > (U_INV_STAB + U_INV_STAB_STEP) )
+                        {   // Decrease the output voltage
+                            if(sine_amplitude > MIN_SINE_AMPLITUDE)
+                            {
+                                sine_amplitude -= 0.5;
+                                Sine_set_amplitude(sine_amplitude);
+                            }
+                        }
+
+                    } // if( u_inv_stab_counter ...
                 }
 
             }
@@ -818,7 +877,7 @@ void app_main(void)
                 }
                 else
                 {
-                    sine_amplitude = sine_amplitude;
+                    sine_amplitude = max_sine_amplitude;
                     ESP_LOGI(TAG, "Inverter started");
                     state_InvStarted = TRUE;
                 }

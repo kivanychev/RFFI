@@ -420,11 +420,19 @@
                         </div>
 
                         <div class="input-group" id="bat-state">
-                          <label>Состояние Ак Батареи</label>
+                          <label>Состояние АБ</label>
                           <div class="text">
                             <input id="bat-state-text" type="text" minlength="1" maxlength="2" size="11" value="..." class="default-action">
                           </div>
                         </div>
+
+                        <div class="input-group" id="message">
+                          <label style="color:red" id="message_label">.</label>
+                          <div class="text">
+                          </div>
+                        </div>
+
+
 
                       <hr style="width:100%">
 
@@ -440,6 +448,8 @@
                           </div>
                         </div>
 
+                        <br>
+
                         <div class="input-group" id="start_inv-group">
                               <label for="start_inv">Пуск инвертора</label>
                               <div class="switch">
@@ -448,6 +458,8 @@
                               </div>
                         </div>
 
+                        <br>
+
                         <div class="input-group" id="start_ab-group">
                             <label for="start_ab">Пуск заряда АБ</label>
                             <div class="switch">
@@ -455,6 +467,8 @@
                                 <label class="slider" for="start_ab"></label>
                             </div>
                         </div>
+
+                        <br>
 
                         <div class="input-group" id="set-pwm-group">
                           <label for="set-pwm">ШИМ задания на ток(0-255)</label>
@@ -467,7 +481,7 @@
                         <div class="input-group" id="set-sine-scale-group">
                           <label for="set-sine-scale">Масштаб синусоиды %</label>
                           <div class="text">
-                                <input id="sine-scale" type="text" minlength="1" maxlength="3" size="3" value="95">
+                                <input id="sine-scale" type="text" minlength="1" maxlength="3" size="3" value="40">
                           </div>
                           <button class="inline-button" id="set-sine-scale">Set</button>
                         </div>
@@ -975,6 +989,11 @@ document.addEventListener('DOMContentLoaded', function (event) {
   // -------------------------------------------
   // MAKE PAGE DATA TOBE UPDATED EVERY 3 SECONDS
   // -------------------------------------------
+  MSGID_OK = 0;
+  MSGID_INV_SHUTDOWN_U_INV_LOWER_095 = 1;
+  MSGID_INV_SHUTDOWN_U_BAT_LOWER_300V = 2;
+  MSGID_INV_SHUTDOWN_DRIVER_FAULT = 3;
+  MSGID_INV_SHUTDOWN_BAT_FAILURE = 4;
 
   setInterval(
     () => {
@@ -984,6 +1003,35 @@ document.addEventListener('DOMContentLoaded', function (event) {
         })
         .then(function (state)
         {
+          console.log('Message ID ' + state['message_id']);
+
+          if(state['message_id'] == MSGID_OK)
+          {
+            document.getElementById("message_label").innerHTML = ".";
+          }
+
+          if(state['message_id'] == MSGID_INV_SHUTDOWN_U_INV_LOWER_095)
+          {
+            document.getElementById("message_label").innerHTML = "<b>СТОП: Напр. Инвертора < 95% !</b>";
+          }
+
+          if(state['message_id'] == MSGID_INV_SHUTDOWN_U_BAT_LOWER_300V)
+          {
+            document.getElementById("message_label").innerHTML = "<b>СТОП: Напряжение АБ < 300В !</b>";
+          }
+
+          if(state['message_id'] == MSGID_INV_SHUTDOWN_DRIVER_FAULT)
+          {
+            document.getElementById("message_label").innerHTML = "<b>СТОП: Ошибка драйвера!</b>";
+          }
+
+          if(state['message_id'] == MSGID_INV_SHUTDOWN_BAT_FAILURE)
+          {
+            document.getElementById("message_label").innerHTML = "<b>СТОП: Ошибка АБ!</b>";
+          }
+
+
+
           document.querySelectorAll('.default-action').forEach(el =>
           {
             console.log('el = ' + el.id);
