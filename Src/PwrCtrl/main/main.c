@@ -720,6 +720,8 @@ void app_main(void)
     UART_set_StartAB(ctrl_startAB);
     UART_set_Iset_level(ISET_DEFAULT);
 
+    message_id_to_server = MSGID_OK;
+
     while(1)
     {
         if(http_response_active == FALSE)
