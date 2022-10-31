@@ -59,7 +59,7 @@
 
 // Trigger value for the stabilization counter
 #define STAB_COUNTER_TRIGGER    1
-#define REGUL_STEP              0.05
+#define REGUL_STEP              0.1
 
 // Message IDs for server
 #define MSGID_OK                                0
@@ -424,6 +424,7 @@ static esp_err_t get_coeffs_handler(httpd_req_t *req)
     char *p = json_response;
     *p++ = '{';
 
+    p += sprintf(p, "\"stab-u-inv-coeff\":%u,", param_coeff->STAB_U_AB);
     p += sprintf(p, "\"u-ab-coeff\":%u,", param_coeff->U_AB);
     p += sprintf(p, "\"u-inv-coeff\":%u,", param_coeff->U_INV);
     p += sprintf(p, "\"i-ab-coeff\":%u,", param_coeff->I_AB);
@@ -507,6 +508,15 @@ static esp_err_t set_coeff_handler(httpd_req_t *req)
             ESP_LOGI(TAG, "u_ab_coeff: %d", value);
             ADC_update_coeff();
         }
+        else if( httpd_query_key_value(buf, "stab_u_inv_coeff", _value, sizeof(_value)) == ESP_OK )
+        {
+            int value = atoi(_value);
+            param_coeff->STAB_U_AB = (uint16_t)(value);
+
+            ESP_LOGI(TAG, "stab_u_inv_coeff: %d", value);
+            ADC_update_coeff();
+        }
+
     }
     else 
     {
@@ -550,6 +560,18 @@ static esp_err_t pwm_handler(httpd_req_t *req)
     free(buf);
 
     int pwm = (atoi(_pwm) * 255) / 100;
+
+    if(pwm > 255)
+    {
+        pwm = 255;
+    }
+
+    if(pwm < 0)
+    {
+        pwm = 1;
+    }
+
+
     ESP_LOGI(TAG, "Set PWM: %d", pwm);
 
     UART_set_Iset_level((uint8_t)(pwm));
@@ -736,7 +758,6 @@ void app_main(void)
 
         if(ctrl_manualMode == FALSE)
         {
-            
             message_id_to_server = MSGID_OK;
 
             // Check if the Inverter is to be turned On
@@ -744,6 +765,7 @@ void app_main(void)
             {
                 //////////////////////////////////////////////
                 //            FAILURE HANDLING                
+                // Affects to Start_Inv and Start_AB signals
                 //////////////////////////////////////////////
 
                 sig_startInv = TRUE;
@@ -819,6 +841,7 @@ void app_main(void)
 
                 //////////////////////////////////////////////
                 //           STABILIZATION HANDLING
+                //         Affects to Sine PWM signals
                 //////////////////////////////////////////////
 
                 if( state_InvStarted == TRUE )
@@ -843,34 +866,32 @@ void app_main(void)
                                 Sine_set_amplitude(sine_amplitude);
                             }
                         }
-                        else if( params.Uinv < (U_INV_STAB - U_INV_STAB_RANGE) )
+                        else
                         {
-                            // Inverter output voltage stabilization
-                            // Raise the voltage
-                            if(sine_amplitude < MAX_SINE_AMPLITUDE )
+                            max_sine_amplitude = (TOP_SINE_AMPLITUDE * param_coeff->STAB_U_AB) / (params.Uab / 1000);
+
+                            // PERFORM INVERTER SOFT VOLTAGE RISING
+                            if( sine_amplitude <= max_sine_amplitude)
                             {
                                 sine_amplitude += REGUL_STEP;
-                                if(sine_amplitude > MAX_SINE_AMPLITUDE)
+                                if(sine_amplitude > max_sine_amplitude)
                                 {
-                                    sine_amplitude = MAX_SINE_AMPLITUDE;
+                                    sine_amplitude = max_sine_amplitude;
                                 }
 
                                 Sine_set_amplitude(sine_amplitude);
                             }
-                        }
-
-                        if( params.Uinv > (U_INV_STAB + U_INV_STAB_RANGE) )
-                        {   // Decrease the output voltage
-                            if(sine_amplitude > MIN_SINE_AMPLITUDE)
+                            else
                             {
                                 sine_amplitude -= REGUL_STEP;
-                                if(sine_amplitude < MIN_SINE_AMPLITUDE)
+                                if(sine_amplitude < max_sine_amplitude)
                                 {
-                                    sine_amplitude = MIN_SINE_AMPLITUDE;
+                                    sine_amplitude = max_sine_amplitude;
                                 }
 
                                 Sine_set_amplitude(sine_amplitude);
                             }
+                            ESP_LOGD(TAG, "Automatic mode: RISING TO %f", max_sine_amplitude );
                         }
 
                     } // if( u_inv_stab_counter ...
@@ -898,7 +919,8 @@ void app_main(void)
                     ESP_LOGD(TAG, "Set max amplitude for manual mode");
                 }
                 else {
-                    max_sine_amplitude = MAX_SINE_AMPLITUDE;
+                    max_sine_amplitude = (TOP_SINE_AMPLITUDE * param_coeff->STAB_U_AB) / (params.Uab / 1000);
+                    ESP_LOGD(TAG, "Automatic mode: max_sine_amplitude = %f", max_sine_amplitude );
                 }
 
                 // PERFORM INVERTER SOFT START HERE

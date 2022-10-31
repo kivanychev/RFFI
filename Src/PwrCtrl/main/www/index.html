@@ -471,7 +471,7 @@
                         <br>
 
                         <div class="input-group" id="set-pwm-group">
-                          <label for="set-pwm">ШИМ задания на ток(0-100)</label>
+                          <label for="set-pwm">ШИМ задания на ток(0-100%)</label>
                           <div class="text">
                                   <input id="pwm" type="text" minlength="1" maxlength="3" size="3" value="100">
                           </div>
@@ -555,6 +555,14 @@
                               <input id="u-ab-coeff" type="text" minlength="1" maxlength="4" size="3" value="1" class="default-coeff">
                           </div>
                           <button class="inline-button" id="set-u-ab-coeff">Set</button>
+                        </div>
+
+                        <div class="input-group" id="stab-u-inv-coeff-group">
+                          <label for="set-stab-u-inv-coeff">Стабилизация Uinv</label>
+                          <div class="text">
+                              <input id="stab-u-inv-coeff" type="text" minlength="1" maxlength="4" size="3" value="80" class="default-coeff">
+                          </div>
+                          <button class="inline-button" id="set-stab-u-inv-coeff">Set</button>
                         </div>
 
                       </section>
@@ -897,6 +905,27 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
 
 
+  ////// STAB U_INV COEFF /////////
+
+  const setStabUinvCoeffButton = document.getElementById('set-stab-u-inv-coeff')
+
+  function setStabUinv(stab_u_inv_coeff, cb){
+    console.log('Set Stab Uinv coeff ', stab_u_inv_coeff.toString(10) );
+    fetchUrl(`${baseHost}/set-coeff?stab_u_inv_coeff=${stab_u_inv_coeff}`, cb);
+  }
+
+  setStabUinvCoeffButton.onclick = () => {
+    let stab_u_inv_coeff = parseInt(document.getElementById('stab-u-inv-coeff').value);
+
+    setStabUinv(stab_u_inv_coeff, function(code, txt){
+      if(code != 200){
+        alert('Error['+code+']: '+txt);
+      }
+    });
+  }
+
+
+  
   // --------------------------------------------------
   // READ VALUES FROM SERVER AND PUT THEM INTO WEB-PAGE
   // --------------------------------------------------
@@ -1038,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
             updateValue(el, state[el.id]);
           })
         })
-    }, 2000);
+    }, 1000);
 
 })
 

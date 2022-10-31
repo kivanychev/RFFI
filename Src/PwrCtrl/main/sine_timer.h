@@ -4,7 +4,8 @@
 // CONSTANTS
 // ======================================================================
 
-#define MAX_SINE_AMPLITUDE  (50.0 - 0.5)
+#define TOP_SINE_AMPLITUDE  50.0
+#define MAX_SINE_AMPLITUDE  (TOP_SINE_AMPLITUDE - 0.5)
 #define MIN_SINE_AMPLITUDE  4.5
 
 // ======================================================================

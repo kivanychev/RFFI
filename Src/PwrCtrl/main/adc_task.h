@@ -64,7 +64,7 @@ typedef struct {
     uint16_t I_TE;
     uint16_t U_AB;
     uint16_t U_TE;
-    uint16_t divider;
+    uint16_t STAB_U_AB;
 
 } ADC_coeff_t;
 

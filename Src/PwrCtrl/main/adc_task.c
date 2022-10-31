@@ -323,11 +323,11 @@ ADC_coeff_t *ADC_init_coeff()
         }
 
 
-        if( nvs_get_u16(nvs_handle, "coeff.divider", &coeff.divider) != ESP_OK) {
+        if( nvs_get_u16(nvs_handle, "coeff.STAB_U_AB", &coeff.STAB_U_AB) != ESP_OK) {
             ESP_LOGI(TAG, "coeff.U_TE not yet found");
         }
         else {
-            ESP_LOGI(TAG, "coeff.divider: read value = %d", coeff.divider);
+            ESP_LOGI(TAG, "coeff.STAB_U_AB: read value = %d", coeff.STAB_U_AB);
         }
 
         nvs_close(nvs_handle);
@@ -409,12 +409,12 @@ void ADC_update_coeff()
             ESP_LOGD(TAG, "U_TE Write Successful!");
         }
 
-        err = nvs_set_u16(nvs_handle, "coeff.divider", coeff.divider);
+        err = nvs_set_u16(nvs_handle, "coeff.STAB_U_AB", coeff.STAB_U_AB);
         if(err != ESP_OK) {
-            ESP_LOGD(TAG, "divider Write Failed!");
+            ESP_LOGD(TAG, "STAB_U_AB Write Failed!");
         }
         else {
-            ESP_LOGD(TAG, "divider Write Successful!");
+            ESP_LOGD(TAG, "STAB_U_AB Write Successful!");
         }
 
 
