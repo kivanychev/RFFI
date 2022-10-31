@@ -229,7 +229,7 @@ void Sine_stop_wave()
  */
 void Sine_start_wave()
 {
-    ESP_LOGI(TAG, "Sine_start_wave()");
+    ESP_LOGD(TAG, "Sine_start_wave()");
 
     sine_enabled = TRUE;
 }

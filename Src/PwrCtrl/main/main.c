@@ -52,13 +52,14 @@
 #define MAX_AB_CURRENT      6000
 
 #define U_INV_STAB          220000
+#define U_INV_STAB_RANGE    500
 #define U_INV_LOWEST        ((U_INV_STAB / 100) * 95)
-#define U_INV_STAB_STEP     10
 
-#define SOFT_START_STEP     2.5
+#define SOFT_START_STEP     0.5
 
 // Trigger value for the stabilization counter
-#define STAB_COUNTER_TRIGGER    4
+#define STAB_COUNTER_TRIGGER    1
+#define REGUL_STEP              0.05
 
 // Message IDs for server
 #define MSGID_OK                                0
@@ -164,7 +165,6 @@ void Set_StartInv(uint8_t value)
         sine_amplitude = MIN_SINE_AMPLITUDE;
     }
     else {
-        ESP_LOGI(TAG, "Sine_start_wave()");
         Sine_start_wave();
     }
 }
@@ -180,6 +180,17 @@ void Set_StartAB(uint8_t value)
 
     UART_set_StartAB(ctrl_startAB);
 }
+
+/**
+ * @brief Turns off automatic mode
+ * 
+ */
+
+void StopAutomatic()
+{
+    ctrl_manualMode = ON;
+}
+
 
 // -----------------------------------------------
 // STATUS HANDLER
@@ -231,8 +242,6 @@ static esp_err_t status_handler(httpd_req_t *req)
 
     *p++ = '}';
     *p++ = 0;
-
-    message_id_to_server = MSGID_OK;
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
@@ -540,7 +549,7 @@ static esp_err_t pwm_handler(httpd_req_t *req)
     }
     free(buf);
 
-    int pwm = atoi(_pwm);
+    int pwm = (atoi(_pwm) * 255) / 100;
     ESP_LOGI(TAG, "Set PWM: %d", pwm);
 
     UART_set_Iset_level((uint8_t)(pwm));
@@ -697,7 +706,7 @@ void app_main(void)
     // Variables reflecting the states of the UI controlling switches
     ctrl_startInv = FALSE;
     ctrl_startAB = FALSE;
-    ctrl_manualMode = FALSE;
+    ctrl_manualMode = TRUE;
 
     // Temporayry states variables 
     uint8_t sig_startInv = FALSE;
@@ -725,6 +734,9 @@ void app_main(void)
 
         if(ctrl_manualMode == FALSE)
         {
+            
+            message_id_to_server = MSGID_OK;
+
             // Check if the Inverter is to be turned On
             if(params.Useti < U_SETI_THRESHOLD ) 
             {
@@ -756,6 +768,7 @@ void app_main(void)
                     ESP_LOGD(TAG, "Fault: ---> Start_Inv = OFF");
                     sig_startInv = FALSE;
                     message_id_to_server = MSGID_INV_SHUTDOWN_DRIVER_FAULT;
+                    StopAutomatic();
                 }
 
                 // Turn off the Inverter if the AB voltage is lower than 300V
@@ -764,13 +777,15 @@ void app_main(void)
                     ESP_LOGD(TAG, "Uab < 300V  ---> Start_Inv = OFF");
                     sig_startInv = FALSE;
                     message_id_to_server = MSGID_INV_SHUTDOWN_U_BAT_LOWER_300V;
+                    StopAutomatic();
                 }
 
                 // Shut down Inverter if the output voltage is less than U_INV_LOWEST
-                if( params.Uinv < U_INV_LOWEST )
+                if( params.Uinv < U_INV_LOWEST && state_InvStarted == TRUE)
                 {
                     sig_startInv = FALSE;
                     message_id_to_server = MSGID_INV_SHUTDOWN_U_INV_LOWER_095;
+                    StopAutomatic();
                 }
 
                 // ---------------------
@@ -782,7 +797,7 @@ void app_main(void)
                     ESP_LOGD(TAG, "sig_startInv == TRUE");
                     // If not yet started then indicate to start the Inverter
                     if(state_InvStarted == FALSE) {
-                        ESP_LOGI(TAG, "Set Invertor to start as Useti < 0.9 * 220 V");
+                        ESP_LOGD(TAG, "Set Invertor to start as Useti < 0.9 * 220 V");
 
                         Set_StartInv(ON);
                     }
@@ -818,26 +833,40 @@ void app_main(void)
                             ESP_LOGI(TAG, "Iab > 6A");
                             if(sine_amplitude > MIN_SINE_AMPLITUDE)
                             {
-                                sine_amplitude -= 0.5;
+                                sine_amplitude -= REGUL_STEP;
+                                if(sine_amplitude < MIN_SINE_AMPLITUDE)
+                                {
+                                    sine_amplitude = MIN_SINE_AMPLITUDE;
+                                }
                                 Sine_set_amplitude(sine_amplitude);
                             }
                         }
-                        else if( params.Uinv < (U_INV_STAB - U_INV_STAB_STEP) )
+                        else if( params.Uinv < (U_INV_STAB - U_INV_STAB_RANGE) )
                         {
                             // Inverter output voltage stabilization
                             // Raise the voltage
                             if(sine_amplitude < MAX_SINE_AMPLITUDE )
                             {
-                                sine_amplitude += 0.5;
+                                sine_amplitude += REGUL_STEP;
+                                if(sine_amplitude > MAX_SINE_AMPLITUDE)
+                                {
+                                    sine_amplitude = MAX_SINE_AMPLITUDE;
+                                }
+
                                 Sine_set_amplitude(sine_amplitude);
                             }
                         }
 
-                        if( params.Uinv > (U_INV_STAB + U_INV_STAB_STEP) )
+                        if( params.Uinv > (U_INV_STAB + U_INV_STAB_RANGE) )
                         {   // Decrease the output voltage
                             if(sine_amplitude > MIN_SINE_AMPLITUDE)
                             {
-                                sine_amplitude -= 0.5;
+                                sine_amplitude -= REGUL_STEP;
+                                if(sine_amplitude < MIN_SINE_AMPLITUDE)
+                                {
+                                    sine_amplitude = MIN_SINE_AMPLITUDE;
+                                }
+
                                 Sine_set_amplitude(sine_amplitude);
                             }
                         }
@@ -864,6 +893,7 @@ void app_main(void)
             {
                 if(ctrl_manualMode == TRUE) {
                     max_sine_amplitude = manual_max_sine_amplitude;
+                    ESP_LOGD(TAG, "Set max amplitude for manual mode");
                 }
                 else {
                     max_sine_amplitude = MAX_SINE_AMPLITUDE;
@@ -884,7 +914,7 @@ void app_main(void)
             }
         }
 
-        vTaskDelay(5);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 
 }

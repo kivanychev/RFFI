@@ -241,7 +241,7 @@ void adc_task(void *args)
 
         ESP_LOGD(TAG, "---------------------------------");
 
-        vTaskDelay(100);
+        vTaskDelay(10);
     }
 }
 
