@@ -373,8 +373,8 @@ int main(void)
     
     // Initialize Clear Fault signal to 1 (OFF)
     ClearFault_OFF();
-    StartInv_ON();
-    StartAB_ON();
+    StartInv_OFF();
+    StartAB_OFF();
 
     sei();
 
