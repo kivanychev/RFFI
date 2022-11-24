@@ -68,6 +68,8 @@
 #define MSGID_INV_SHUTDOWN_DRIVER_FAULT         3
 #define MSGID_INV_SHUTDOWN_BAT_FAILURE          4
 
+#define DELAY_MEASURE_CNT                       20
+
 // ===================================================================
 // LOCAL VARIABLES
 // ===================================================================
@@ -105,6 +107,7 @@ volatile float manual_max_sine_amplitude = (MAX_SINE_AMPLITUDE * 40.0) / 100.0;;
 // It is cleared after it has been sent
 uint8_t message_id_to_server = MSGID_OK;
 
+volatile uint16_t delay_measure_cnt = DELAY_MEASURE_CNT;
 // ===================================================================
 // LOCAL FUNCTIONS
 // ===================================================================
@@ -157,7 +160,7 @@ void Set_StartInv(uint8_t value)
 
     if(value == OFF)
     {
-        ESP_LOGI(TAG, "Sine_stop_wave()");
+        ESP_LOGD(TAG, "Sine_stop_wave()");
         Sine_stop_wave();
 
         // This flag will be set after soft start procedure is finished in the main code
@@ -386,6 +389,13 @@ static esp_err_t cmd_handler(httpd_req_t *req)
             int value = atoi(_value);
             ctrl_manualMode = (uint8_t)(value);
 
+            if( ctrl_manualMode == ON )
+            {
+                // Stop Invertor when switching to manual mode
+                Set_StartInv(FALSE);
+                Set_StartAB(FALSE);
+            }
+
             ESP_LOGI(TAG, "Command ManualMode: %d", ctrl_manualMode);
 
         }
@@ -559,11 +569,11 @@ static esp_err_t pwm_handler(httpd_req_t *req)
     }
     free(buf);
 
-    int pwm = (atoi(_pwm) * 255) / 100;
+    int pwm = (atoi(_pwm) * 128) / 20 + 127;
 
     if(pwm > 255)
     {
-        pwm = 255;
+        pwm = 20;
     }
 
     if(pwm < 0)
@@ -730,6 +740,8 @@ void app_main(void)
     ctrl_startAB = FALSE;
     ctrl_manualMode = TRUE;
 
+    delay_measure_cnt = DELAY_MEASURE_CNT;
+
     // Temporayry states variables 
     uint8_t sig_startInv = FALSE;
     uint8_t sig_startAB = FALSE;
@@ -761,7 +773,7 @@ void app_main(void)
             message_id_to_server = MSGID_OK;
 
             // Check if the Inverter is to be turned On
-            if(params.Useti < U_SETI_THRESHOLD ) 
+            if(params.Useti < U_SETI_THRESHOLD )
             {
                 //////////////////////////////////////////////
                 //            FAILURE HANDLING                
@@ -813,7 +825,7 @@ void app_main(void)
                 }
 
                 // ---------------------
-                // APPLY INVERTER SIGNAL 
+                // APPLY INVERTER SIGNAL
                 // ---------------------
 
                 if(sig_startInv == TRUE)
