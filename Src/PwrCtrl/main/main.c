@@ -53,7 +53,7 @@
 
 #define U_INV_STAB          220000
 #define U_INV_STAB_RANGE    500
-#define U_INV_LOWEST        ((U_INV_STAB / 100) * 95)
+#define U_INV_LOWEST        ((U_INV_STAB / 100) * 90)
 
 #define SOFT_START_STEP     0.5
 
@@ -68,7 +68,8 @@
 #define MSGID_INV_SHUTDOWN_DRIVER_FAULT         3
 #define MSGID_INV_SHUTDOWN_BAT_FAILURE          4
 
-#define DELAY_MEASURE_CNT                       20
+#define DELAY_MEASURE_CNT                       350
+#define MEASURE_CNT_EXPIRED                     0
 
 // ===================================================================
 // LOCAL VARIABLES
@@ -166,6 +167,7 @@ void Set_StartInv(uint8_t value)
         // This flag will be set after soft start procedure is finished in the main code
         state_InvStarted = FALSE;
         sine_amplitude = MIN_SINE_AMPLITUDE;
+        delay_measure_cnt = DELAY_MEASURE_CNT;
     }
     else {
         Sine_start_wave();
@@ -816,12 +818,19 @@ void app_main(void)
                     StopAutomatic();
                 }
 
-                // Shut down Inverter if the output voltage is less than U_INV_LOWEST
-                if( params.Uinv < U_INV_LOWEST && state_InvStarted == TRUE)
+                // Check of the measure check delay has expired
+                if(delay_measure_cnt == MEASURE_CNT_EXPIRED)
                 {
-                    sig_startInv = FALSE;
-                    message_id_to_server = MSGID_INV_SHUTDOWN_U_INV_LOWER_095;
-                    StopAutomatic();
+                    // Shut down Inverter if the output voltage is less than U_INV_LOWEST
+                    if( params.Uinv < U_INV_LOWEST && state_InvStarted == TRUE)
+                    {
+                        sig_startInv = FALSE;
+                        message_id_to_server = MSGID_INV_SHUTDOWN_U_INV_LOWER_095;
+                        StopAutomatic();
+                    }
+                }
+                else {
+                    delay_measure_cnt--;
                 }
 
                 // ---------------------

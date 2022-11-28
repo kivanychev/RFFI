@@ -969,6 +969,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
         if(value < 0)
         {
           document.getElementById("bat-state-text").value = "Заряд";
+
+          // Remove negative sign for the discharging current value
+          el.value = -value;
         }
         else
         {
