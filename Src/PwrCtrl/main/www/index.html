@@ -966,12 +966,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
       if(el.id == "i_ab")
       {
+          // Invert the sign of the Iab value
+          el.value = -value;
+
         if(value < 0)
         {
           document.getElementById("bat-state-text").value = "Заряд";
-
-          // Remove negative sign for the discharging current value
-          el.value = -value;
         }
         else
         {

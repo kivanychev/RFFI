@@ -53,7 +53,9 @@
 
 #define U_INV_STAB          220000
 #define U_INV_STAB_RANGE    500
-#define U_INV_LOWEST        ((U_INV_STAB / 100) * 90)
+
+// Output voltage 95% of 220V should be supported
+#define U_INV_LOWEST        ((U_INV_STAB / 100) * 95)
 
 #define SOFT_START_STEP     0.5
 
@@ -922,7 +924,9 @@ void app_main(void)
             else 
             {   // Turn off the Inverter
                 Set_StartInv(OFF);
-                Set_StartAB(OFF);
+
+                // AB charging should always be turned ON in automatic mode
+                //Set_StartAB(OFF);
             }
         }
 
