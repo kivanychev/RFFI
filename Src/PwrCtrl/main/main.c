@@ -45,6 +45,9 @@
 
 // If the Useti < U_SETI_THRESHOLD then turn ON the Inverter
 #define U_SETI_THRESHOLD    (220000 * 0.9)
+#define UAB_490V            490000
+#define UAB_300V            300000
+#define IAB_0_1A            100
 
 #define ALL_BATTERIES_OK    0
 #define INVERTER_FAULT      0
@@ -812,7 +815,7 @@ void app_main(void)
                 }
 
                 // Turn off the Inverter if the AB voltage is lower than 300V
-                if( params.Uab < 300000 )
+                if( params.Uab < UAB_300V )
                 {
                     ESP_LOGD(TAG, "Uab < 300V  ---> Start_Inv = OFF");
                     sig_startInv = FALSE;
@@ -922,13 +925,32 @@ void app_main(void)
 
             }
             else 
-            {   // Turn off the Inverter
+            {   // Useti is present -> Turn off the Inverter
                 Set_StartInv(OFF);
 
-                // AB charging should always be turned ON in automatic mode
-                //Set_StartAB(OFF);
+                if(params.Uab < UAB_490V)
+                {
+                    if(params.Iab > -IAB_0_1A && params.Iab < 0)
+                    {
+                        Set_StartAB(OFF);
+                    }
+                }
             }
         }
+        else 
+        {   // Manual Mode: Check batteries
+            if( UART_get_battery_state() != ALL_BATTERIES_OK )
+            {
+                ESP_LOGD(TAG, "Bat error: Batteries error");
+                message_id_to_server = MSGID_INV_SHUTDOWN_BAT_FAILURE;
+                Set_StartAB(OFF);
+            }
+            else
+            {
+                message_id_to_server = MSGID_OK;
+            }
+        }
+
 
         ////////////////////////////////////
         // Start Inverter if not yet started
