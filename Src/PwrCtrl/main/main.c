@@ -580,7 +580,7 @@ static esp_err_t pwm_handler(httpd_req_t *req)
 
     if(pwm > 255)
     {
-        pwm = 20;
+        pwm = 255;
     }
 
     if(pwm < 0)
